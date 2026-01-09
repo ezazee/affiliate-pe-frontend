@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+"use client";
+
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { User, UserRole, UserStatus } from '@/types';
 
 interface AuthContextType {
@@ -43,10 +45,14 @@ const mockUsers: (User & { password: string })[] = [
 ];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
     const stored = localStorage.getItem('affiliate_user');
-    return stored ? JSON.parse(stored) : null;
-  });
+    if (stored) {
+      setUser(JSON.parse(stored));
+    }
+  }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     // Simulate API call
