@@ -1,26 +1,65 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { DollarSign, Clock, Check, CreditCard, TrendingUp } from 'lucide-react';
+import { DollarSign, Clock, Check, CreditCard, TrendingUp, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from '@/components/dashboard/StatCard';
-import { commissions, getCommissionsByAffiliatorId, orders, getProductById } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
-import { CommissionStatus } from '@/types';
+import { Commission, CommissionStatus, Order, Product } from '@/types';
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 
 export default function AffiliatorCommissions() {
   const { user } = useAuth();
-  const myCommissions = user ? getCommissionsByAffiliatorId(user.id) : [];
+  const [commissions, setCommissions] = useState<Commission[]>([]);
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const getOrderDetails = (orderId: string) => orders.find(o => o.id === orderId);
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const [commissionsResponse, ordersResponse, productsResponse] = await Promise.all([
+          fetch(`/api/affiliator/commissions?affiliatorId=${user.id}`),
+          fetch('/api/admin/orders'), // Fetch all orders
+          fetch('/api/admin/products'), // Fetch all products
+        ]);
+
+        if (commissionsResponse.ok && ordersResponse.ok && productsResponse.ok) {
+          const commissionsData = await commissionsResponse.json();
+          const ordersData = await ordersResponse.json();
+          const productsData = await productsResponse.json();
+          setCommissions(commissionsData);
+          setAllOrders(ordersData);
+          setAllProducts(productsData);
+        } else {
+          toast.error('Failed to load data.');
+        }
+      } catch (error) {
+        console.error('Failed to fetch initial data:', error);
+        toast.error('An error occurred while loading data.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInitialData();
+  }, [user]);
+
+  const getOrderDetails = (orderId: string) => allOrders.find(o => o._id?.toString() === orderId);
+  const getProductById = (productId: string) => allProducts.find(p => p._id?.toString() === productId);
 
   const getStatusBadge = (status: CommissionStatus) => {
     const styles: Record<CommissionStatus, string> = {
       pending: 'bg-accent/20 text-accent-foreground',
       approved: 'bg-primary/20 text-primary',
       paid: 'bg-success/20 text-success',
+      cancelled: 'bg-red-100 text-red-800',
     };
     return styles[status];
   };
@@ -30,15 +69,16 @@ export default function AffiliatorCommissions() {
       pending: <Clock className="w-3 h-3" />,
       approved: <Check className="w-3 h-3" />,
       paid: <CreditCard className="w-3 h-3" />,
+      cancelled: <XCircle className="w-3 h-3" />,
     };
     return icons[status];
   };
 
   const stats = {
-    total: myCommissions.reduce((sum, c) => sum + c.amount, 0),
-    pending: myCommissions.filter(c => c.status === 'pending').reduce((sum, c) => sum + c.amount, 0),
-    approved: myCommissions.filter(c => c.status === 'approved').reduce((sum, c) => sum + c.amount, 0),
-    paid: myCommissions.filter(c => c.status === 'paid').reduce((sum, c) => sum + c.amount, 0),
+    total: commissions.reduce((sum, c) => sum + c.amount, 0),
+    pending: commissions.filter(c => c.status === 'pending').reduce((sum, c) => sum + c.amount, 0),
+    approved: commissions.filter(c => c.status === 'approved').reduce((sum, c) => sum + c.amount, 0),
+    paid: commissions.filter(c => c.status === 'paid').reduce((sum, c) => sum + c.amount, 0),
   };
 
   return (
@@ -51,31 +91,42 @@ export default function AffiliatorCommissions() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard
-            title="Total Earned"
-            value={`$${stats.total.toFixed(2)}`}
-            icon={DollarSign}
-            variant="primary"
-            delay={0}
-          />
-          <StatCard
-            title="Pending"
-            value={`$${stats.pending.toFixed(2)}`}
-            icon={Clock}
-            delay={0.1}
-          />
-          <StatCard
-            title="Approved"
-            value={`$${stats.approved.toFixed(2)}`}
-            icon={Check}
-            delay={0.2}
-          />
-          <StatCard
-            title="Paid Out"
-            value={`$${stats.paid.toFixed(2)}`}
-            icon={CreditCard}
-            delay={0.3}
-          />
+          {loading ? (
+            <>
+              <Skeleton className="h-28" />
+              <Skeleton className="h-28" />
+              <Skeleton className="h-28" />
+              <Skeleton className="h-28" />
+            </>
+          ) : (
+            <>
+              <StatCard
+                title="Total Earned"
+                value={`$${stats.total.toFixed(2)}`}
+                icon={DollarSign}
+                variant="primary"
+                delay={0}
+              />
+              <StatCard
+                title="Pending"
+                value={`$${stats.pending.toFixed(2)}`}
+                icon={Clock}
+                delay={0.1}
+              />
+              <StatCard
+                title="Approved"
+                value={`$${stats.approved.toFixed(2)}`}
+                icon={Check}
+                delay={0.2}
+              />
+              <StatCard
+                title="Paid Out"
+                value={`$${stats.paid.toFixed(2)}`}
+                icon={CreditCard}
+                delay={0.3}
+              />
+            </>
+          )}
         </div>
 
         {/* Commissions List */}
@@ -87,15 +138,21 @@ export default function AffiliatorCommissions() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {myCommissions.length > 0 ? (
+            {loading ? (
               <div className="space-y-4">
-                {myCommissions.map((commission, index) => {
+                <Skeleton className="h-20" />
+                <Skeleton className="h-20" />
+                <Skeleton className="h-20" />
+              </div>
+            ) : commissions.length > 0 ? (
+              <div className="space-y-4">
+                {commissions.map((commission, index) => {
                   const order = getOrderDetails(commission.orderId);
                   const product = order ? getProductById(order.productId) : null;
                   
                   return (
                     <motion.div
-                      key={commission.id}
+                      key={commission._id?.toString()}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.3, delay: index * 0.05 }}

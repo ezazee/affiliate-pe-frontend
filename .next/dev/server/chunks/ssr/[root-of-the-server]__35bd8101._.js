@@ -20,36 +20,6 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist
 ;
 ;
 const AuthContext = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createContext"])(undefined);
-// Mock users for demo - will be replaced with backend
-const mockUsers = [
-    {
-        id: '1',
-        name: 'Admin User',
-        email: 'admin@example.com',
-        password: 'admin123',
-        role: 'admin',
-        status: 'approved',
-        createdAt: new Date('2024-01-01')
-    },
-    {
-        id: '2',
-        name: 'John Affiliator',
-        email: 'john@example.com',
-        password: 'john123',
-        role: 'affiliator',
-        status: 'approved',
-        createdAt: new Date('2024-01-15')
-    },
-    {
-        id: '3',
-        name: 'Pending User',
-        email: 'pending@example.com',
-        password: 'pending123',
-        role: 'affiliator',
-        status: 'pending',
-        createdAt: new Date('2024-02-01')
-    }
-];
 function AuthProvider({ children }) {
     const [user, setUser] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(null);
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
@@ -59,43 +29,65 @@ function AuthProvider({ children }) {
         }
     }, []);
     const login = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useCallback"])(async (email, password)=>{
-        // Simulate API call
-        await new Promise((resolve)=>setTimeout(resolve, 500));
-        const foundUser = mockUsers.find((u)=>u.email === email && u.password === password);
-        if (foundUser) {
-            const { password: _, ...userWithoutPassword } = foundUser;
-            setUser(userWithoutPassword);
-            localStorage.setItem('affiliate_user', JSON.stringify(userWithoutPassword));
-            return true;
-        }
-        return false;
-    }, []);
-    const register = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useCallback"])(async (name, email, password)=>{
-        // Simulate API call
-        await new Promise((resolve)=>setTimeout(resolve, 500));
-        // Check if user exists
-        if (mockUsers.some((u)=>u.email === email)) {
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email,
+                    password
+                })
+            });
+            if (response.ok) {
+                const { user } = await response.json();
+                setUser(user);
+                localStorage.setItem('affiliate_user', JSON.stringify(user));
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Login failed:', error);
             return false;
         }
-        const newUser = {
-            id: String(mockUsers.length + 1),
-            name,
-            email,
-            role: 'affiliator',
-            status: 'pending',
-            createdAt: new Date()
-        };
-        mockUsers.push({
-            ...newUser,
-            password
-        });
-        setUser(newUser);
-        localStorage.setItem('affiliate_user', JSON.stringify(newUser));
-        return true;
     }, []);
-    const logout = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useCallback"])(()=>{
-        setUser(null);
-        localStorage.removeItem('affiliate_user');
+    const register = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useCallback"])(async (name, email, password)=>{
+        try {
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name,
+                    email,
+                    password
+                })
+            });
+            if (response.ok) {
+                const { user } = await response.json();
+                setUser(user);
+                localStorage.setItem('affiliate_user', JSON.stringify(user));
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Registration failed:', error);
+            return false;
+        }
+    }, []);
+    const logout = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useCallback"])(async ()=>{
+        try {
+            await fetch('/api/auth/logout', {
+                method: 'POST'
+            });
+        } catch (error) {
+            console.error('Logout failed:', error);
+        } finally{
+            setUser(null);
+            localStorage.removeItem('affiliate_user');
+        }
     }, []);
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(AuthContext.Provider, {
         value: {
@@ -108,7 +100,7 @@ function AuthProvider({ children }) {
         children: children
     }, void 0, false, {
         fileName: "[project]/src/contexts/AuthContext.tsx",
-        lineNumber: 103,
+        lineNumber: 84,
         columnNumber: 5
     }, this);
 }

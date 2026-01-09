@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Copy, ExternalLink, Link as LinkIcon, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,22 +21,54 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { affiliateLinks as initialLinks, products, getLinksByAffiliatorId, getProductById } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
-import { AffiliateLink } from '@/types';
+import { AffiliateLink, Product } from '@/types';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AffiliatorLinks() {
   const { user } = useAuth();
-  const [links, setLinks] = useState<AffiliateLink[]>(
-    user ? getLinksByAffiliatorId(user.id) : []
-  );
+  const [links, setLinks] = useState<AffiliateLink[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]); // To store all products
+  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState('');
 
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const [linksResponse, productsResponse] = await Promise.all([
+          fetch(`/api/affiliator/links?affiliatorId=${user.id}`),
+          fetch('/api/admin/products'), // Fetch all products
+        ]);
+
+        if (linksResponse.ok && productsResponse.ok) {
+          const linksData = await linksResponse.json();
+          const productsData = await productsResponse.json();
+          setLinks(linksData);
+          setAllProducts(productsData);
+        } else {
+          toast.error('Failed to load data.');
+        }
+      } catch (error) {
+        console.error('Failed to fetch initial data:', error);
+        toast.error('An error occurred while loading data.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInitialData();
+  }, [user]);
+
+  const getProductById = (productId: string) => allProducts.find(p => p._id?.toString() === productId);
+
   // Get products that don't have links yet
-  const availableProducts = products.filter(
-    p => p.isActive && !links.find(l => l.productId === p.id)
+  const availableProducts = allProducts.filter(
+    p => p.isActive && !links.some(l => l.productId === p._id?.toString())
   );
 
   const generateCode = () => {
@@ -48,24 +80,40 @@ export default function AffiliatorLinks() {
     return code;
   };
 
-  const createLink = () => {
+  const createLink = async () => {
     if (!selectedProductId || !user) return;
     
-    const newLink: AffiliateLink = {
-      id: String(Date.now()),
-      affiliatorId: user.id,
-      productId: selectedProductId,
-      code: generateCode(),
-      isActive: true,
-    };
-    
-    setLinks(prev => [...prev, newLink]);
-    setIsDialogOpen(false);
-    setSelectedProductId('');
-    toast.success('Affiliate link created!');
+    try {
+      const response = await fetch('/api/affiliator/links', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          affiliatorId: user.id,
+          productId: selectedProductId,
+          code: generateCode(),
+          isActive: true,
+        }),
+      });
+
+      if (response.ok) {
+        const createdLink = await response.json();
+        setLinks(prev => [...prev, createdLink]);
+        setIsDialogOpen(false);
+        setSelectedProductId('');
+        toast.success('Affiliate link created!');
+      } else {
+        toast.error('Failed to create affiliate link.');
+      }
+    } catch (error) {
+      console.error('Failed to create link:', error);
+      toast.error('An error occurred while creating link.');
+    }
   };
 
   const deleteLink = (linkId: string) => {
+    console.log('Frontend Delete Link ID:', linkId);
     setLinks(prev => prev.filter(l => l.id !== linkId));
     toast.success('Link deleted');
   };
@@ -77,6 +125,7 @@ export default function AffiliatorLinks() {
   };
 
   const toggleActive = (linkId: string) => {
+    console.log('Frontend Toggle Active Link ID:', linkId);
     setLinks(prev => prev.map(l => 
       l.id === linkId ? { ...l, isActive: !l.isActive } : l
     ));
@@ -110,7 +159,7 @@ export default function AffiliatorLinks() {
                     </SelectTrigger>
                     <SelectContent>
                       {availableProducts.map(product => (
-                        <SelectItem key={product.id} value={product.id}>
+                        <SelectItem key={product._id?.toString()} value={product._id?.toString()}>
                           <div className="flex items-center justify-between w-full">
                             <span>{product.name}</span>
                             <span className="text-muted-foreground ml-2">${product.price}</span>
@@ -150,83 +199,91 @@ export default function AffiliatorLinks() {
         </div>
 
         {/* Links List */}
-        <div className="grid gap-4">
-          {links.map((link, index) => {
-            const product = getProductById(link.productId);
-            if (!product) return null;
-            
-            const fullUrl = `${window.location.origin}/checkout/${product.slug}?ref=${link.code}`;
-            
-            return (
-              <motion.div
-                key={link.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-              >
-                <Card className="shadow-card hover:shadow-card-hover transition-all duration-300">
-                  <CardContent className="p-5">
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-foreground">{product.name}</h3>
-                          <Badge 
-                            variant={link.isActive ? 'default' : 'secondary'}
-                            className={`cursor-pointer ${link.isActive ? 'bg-success text-success-foreground' : ''}`}
-                            onClick={() => toggleActive(link.id)}
+        {loading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {links.map((link, index) => {
+              const product = getProductById(link.productId);
+              if (!product) return null;
+              
+              const fullUrl = `${window.location.origin}/checkout/${product.slug}?ref=${link.code}`;
+              
+              return (
+                <motion.div
+                  key={link.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                >
+                  <Card className="shadow-card hover:shadow-card-hover transition-all duration-300">
+                    <CardContent className="p-5">
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-semibold text-foreground">{product.name}</h3>
+                            <Badge 
+                              variant={link.isActive ? 'default' : 'secondary'}
+                              className={`cursor-pointer ${link.isActive ? 'bg-success text-success-foreground' : ''}`}
+                              onClick={() => toggleActive(link.id)}
+                            >
+                              {link.isActive ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2 p-3 rounded-lg bg-secondary text-sm font-mono">
+                            <LinkIcon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            <span className="truncate text-muted-foreground">{fullUrl}</span>
+                          </div>
+                          <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
+                            <span>Code: <code className="text-primary font-semibold">{link.code}</code></span>
+                            <span>•</span>
+                            <span>
+                              Commission: {product.commissionType === 'percentage' 
+                                ? `${product.commissionValue}%` 
+                                : `$${product.commissionValue}`}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="default"
+                            onClick={() => copyLink(link.code, product.slug)}
                           >
-                            {link.isActive ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-2 p-3 rounded-lg bg-secondary text-sm font-mono">
-                          <LinkIcon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                          <span className="truncate text-muted-foreground">{fullUrl}</span>
-                        </div>
-                        <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
-                          <span>Code: <code className="text-primary font-semibold">{link.code}</code></span>
-                          <span>•</span>
-                          <span>
-                            Commission: {product.commissionType === 'percentage' 
-                              ? `${product.commissionValue}%` 
-                              : `$${product.commissionValue}`}
-                          </span>
+                            <Copy className="w-4 h-4 mr-1" />
+                            Copy
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => window.open(fullUrl, '_blank')}
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            className="text-destructive"
+                            onClick={() => deleteLink(link.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
-                      
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="default"
-                          onClick={() => copyLink(link.code, product.slug)}
-                        >
-                          <Copy className="w-4 h-4 mr-1" />
-                          Copy
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => window.open(fullUrl, '_blank')}
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          className="text-destructive"
-                          onClick={() => deleteLink(link.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            );
-          })}
-        </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
 
-        {links.length === 0 && (
+        {!loading && links.length === 0 && (
           <Card className="shadow-card">
             <CardContent className="py-12 text-center">
               <LinkIcon className="w-12 h-12 mx-auto text-muted-foreground mb-4" />

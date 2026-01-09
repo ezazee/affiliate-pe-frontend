@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Check, X, Ban, UserCheck, Clock, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,14 +14,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { users as initialUsers } from '@/data/mockData';
-import { User, UserStatus } from '@/types';
+import { User, UserStatus } from '@/types/user';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
+
+import ClientOnly from '@/components/ClientOnly';
 
 export default function AdminAffiliators() {
-  const [users, setUsers] = useState<User[]>(initialUsers.filter(u => u.role === 'affiliator'));
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  useEffect(() => {
+    const fetchAffiliators = async () => {
+      try {
+        const response = await fetch('/api/admin/affiliators');
+        if (response.ok) {
+          const data = await response.json();
+          setUsers(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch affiliators:', error);
+        toast.error('Failed to load affiliators.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAffiliators();
+  }, []);
 
   const filteredUsers = users.filter(u => {
     const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -30,11 +51,29 @@ export default function AdminAffiliators() {
     return matchesSearch && matchesStatus;
   });
 
-  const updateStatus = (userId: string, newStatus: UserStatus) => {
-    setUsers(prev => prev.map(u => 
-      u.id === userId ? { ...u, status: newStatus } : u
-    ));
-    toast.success(`Affiliator ${newStatus}`);
+  const updateStatus = async (userId: string, newStatus: UserStatus) => {
+    console.log('Frontend User ID being sent:', userId);
+    try {
+      const response = await fetch(`/api/admin/affiliators/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (response.ok) {
+        setUsers(prev => prev.map(u => 
+          u.id === userId ? { ...u, status: newStatus } : u
+        ));
+        toast.success(`Affiliator ${newStatus}`);
+      } else {
+        toast.error('Failed to update affiliator status.');
+      }
+    } catch (error) {
+      console.error('Failed to update status:', error);
+      toast.error('An error occurred while updating status.');
+    }
   };
 
   const getStatusBadge = (status: UserStatus) => {
@@ -98,105 +137,115 @@ export default function AdminAffiliators() {
               className="pl-10"
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-              <SelectItem value="suspended">Suspended</SelectItem>
-            </SelectContent>
-          </Select>
+          <ClientOnly>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="suspended">Suspended</SelectItem>
+              </SelectContent>
+            </Select>
+          </ClientOnly>
         </div>
 
         {/* Users List */}
-        <div className="space-y-4">
-          {filteredUsers.map((user, index) => (
-            <motion.div
-              key={user.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-            >
-              <Card className="shadow-card hover:shadow-card-hover transition-all duration-300">
-                <CardContent className="p-5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <span className="font-semibold text-primary text-lg">
-                          {user.name.charAt(0).toUpperCase()}
-                        </span>
+        {loading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredUsers.map((user, index) => (
+              <motion.div
+                key={user.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+              >
+                <Card className="shadow-card hover:shadow-card-hover transition-all duration-300">
+                  <CardContent className="p-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <span className="font-semibold text-primary text-lg">
+                            {user.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-foreground">{user.name}</h3>
+                          <p className="text-sm text-muted-foreground">{user.email}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Joined: {new Date(user.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-foreground">{user.name}</h3>
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Joined: {new Date(user.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <Badge className={`${getStatusBadge(user.status)} flex items-center gap-1`}>
-                        {getStatusIcon(user.status)}
-                        {user.status}
-                      </Badge>
                       
-                      <div className="flex gap-2">
-                        {user.status === 'pending' && (
-                          <>
+                      <div className="flex items-center gap-3">
+                        <Badge className={`${getStatusBadge(user.status)} flex items-center gap-1`}>
+                          {getStatusIcon(user.status)}
+                          {user.status}
+                        </Badge>
+                        
+                        <div className="flex gap-2">
+                          {user.status === 'pending' && (
+                            <>
+                              <Button 
+                                size="sm" 
+                                variant="default"
+                                onClick={() => updateStatus(user.id, 'approved')}
+                              >
+                                <Check className="w-4 h-4 mr-1" />
+                                Approve
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => updateStatus(user.id, 'rejected')}
+                              >
+                                <X className="w-4 h-4 mr-1" />
+                                Reject
+                              </Button>
+                            </>
+                          )}
+                          {user.status === 'approved' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="text-destructive"
+                              onClick={() => updateStatus(user.id, 'suspended')}
+                            >
+                              <Ban className="w-4 h-4 mr-1" />
+                              Suspend
+                            </Button>
+                          )}
+                          {(user.status === 'suspended' || user.status === 'rejected') && (
                             <Button 
                               size="sm" 
                               variant="default"
                               onClick={() => updateStatus(user.id, 'approved')}
                             >
-                              <Check className="w-4 h-4 mr-1" />
-                              Approve
+                              <UserCheck className="w-4 h-4 mr-1" />
+                              Reactivate
                             </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => updateStatus(user.id, 'rejected')}
-                            >
-                              <X className="w-4 h-4 mr-1" />
-                              Reject
-                            </Button>
-                          </>
-                        )}
-                        {user.status === 'approved' && (
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            className="text-destructive"
-                            onClick={() => updateStatus(user.id, 'suspended')}
-                          >
-                            <Ban className="w-4 h-4 mr-1" />
-                            Suspend
-                          </Button>
-                        )}
-                        {(user.status === 'suspended' || user.status === 'rejected') && (
-                          <Button 
-                            size="sm" 
-                            variant="default"
-                            onClick={() => updateStatus(user.id, 'approved')}
-                          >
-                            <UserCheck className="w-4 h-4 mr-1" />
-                            Reactivate
-                          </Button>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        )}
 
-        {filteredUsers.length === 0 && (
+        {!loading && filteredUsers.length === 0 && (
           <div className="text-center py-12">
             <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
             <p className="text-muted-foreground">No affiliators found</p>

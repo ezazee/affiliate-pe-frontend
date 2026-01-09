@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getProductBySlug, getAffiliateLinkByCode, getUserById, affiliateLinks, products } from '@/data/mockData';
 import { Product, AffiliateLink, User as UserType } from '@/types';
 import { toast } from 'sonner';
 
@@ -26,6 +25,7 @@ export default function Checkout() {
   const [affiliator, setAffiliator] = useState<UserType | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [formData, setFormData] = useState({
     buyerName: '',
@@ -38,43 +38,45 @@ export default function Checkout() {
   });
 
   useEffect(() => {
-    // Validate affiliate link
-    if (!refCode) {
-      router.push('/invalid-affiliate');
-      return;
-    }
+    const fetchData = async () => {
+      setIsLoading(true);
+      if (!refCode) {
+        router.push('/invalid-affiliate');
+        setIsLoading(false);
+        return;
+      }
 
-    const link = affiliateLinks.find(l => l.code === refCode && l.isActive);
-    if (!link) {
-      router.push('/invalid-affiliate');
-      return;
-    }
+      try {
+        const response = await fetch(`/api/checkout/${productSlug}?ref=${refCode}`);
+        const data = await response.json();
 
-    const foundProduct = products.find(p => p.slug === productSlug && p.isActive);
-    if (!foundProduct || foundProduct.id !== link.productId) {
-      router.push('/invalid-affiliate');
-      return;
-    }
+        if (!response.ok) {
+          toast.error(data.error || 'Failed to load checkout data.');
+          router.push('/invalid-affiliate');
+          return;
+        }
 
-    const foundAffiliator = getUserById(link.affiliatorId);
-    if (!foundAffiliator || foundAffiliator.status !== 'approved') {
-      router.push('/invalid-affiliate');
-      return;
-    }
+        setProduct(data.product);
+        setAffiliateLink(data.affiliateLink);
+        setAffiliator(data.affiliator);
+      } catch (error) {
+        console.error('Error fetching checkout data:', error);
+        toast.error('Failed to load checkout data due to a network error.');
+        router.push('/invalid-affiliate');
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    setProduct(foundProduct);
-    setAffiliateLink(link);
-    setAffiliator(foundAffiliator);
+    fetchData();
   }, [productSlug, refCode, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    // In a real app, this would create an order in the database
+    // Simulate API call to create order in MongoDB
+    // In a real app, this would be an API call to your backend
     console.log('Order submitted:', {
       ...formData,
       productId: product?.id,
@@ -83,12 +85,33 @@ export default function Checkout() {
       affiliateName: affiliator?.name,
     });
 
+    // Example of how you would send this to an API route:
+    // const orderResponse = await fetch('/api/orders', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({
+    //     ...formData,
+    //     productId: product?.id,
+    //     affiliatorId: affiliator?.id,
+    //     affiliateCode: refCode,
+    //   }),
+    // });
+    // if (orderResponse.ok) {
+    //   setIsSuccess(true);
+    //   toast.success('Order placed successfully!');
+    // } else {
+    //   const errorData = await orderResponse.json();
+    //   toast.error(errorData.error || 'Failed to place order.');
+    // }
+
+    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API delay
+
     setIsSubmitting(false);
     setIsSuccess(true);
     toast.success('Order placed successfully!');
   };
 
-  if (!product || !affiliator) {
+  if (isLoading || !product || !affiliator) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse-soft text-muted-foreground">Loading...</div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Link as LinkIcon, 
@@ -16,27 +16,70 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AffiliateLink, Commission } from '@/types';
 
-// Mock data for demo
-const affiliateLinks = [
-  { id: '1', product: 'Premium Course', code: 'ABC123', clicks: 245, conversions: 12, earnings: 598 },
-  { id: '2', product: 'E-Book Bundle', code: 'DEF456', clicks: 156, conversions: 8, earnings: 196 },
-  { id: '3', product: 'Membership', code: 'GHI789', clicks: 89, conversions: 5, earnings: 245 },
-];
-
-const recentCommissions = [
-  { id: '1', product: 'Premium Course', amount: 49.90, status: 'approved', date: '2024-01-15' },
-  { id: '2', product: 'E-Book Bundle', amount: 24.50, status: 'pending', date: '2024-01-14' },
-  { id: '3', product: 'Premium Course', amount: 49.90, status: 'paid', date: '2024-01-10' },
-];
+interface AffiliatorStats {
+  totalRevenue: number;
+  totalCommissions: number;
+  totalOrders: number;
+  conversionRate: string;
+}
 
 export default function AffiliatorDashboard() {
   const { user } = useAuth();
+  const [stats, setStats] = useState<AffiliatorStats | null>(null);
+  const [affiliateLinks, setAffiliateLinks] = useState<AffiliateLink[]>([]);
+  const [recentCommissions, setRecentCommissions] = useState<Commission[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const copyLink = (code: string) => {
-    const link = `https://yoursite.com/checkout/product?ref=${code}`;
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const [statsResponse, linksResponse, commissionsResponse] = await Promise.all([
+          fetch(`/api/affiliator/stats?affiliatorId=${user.id}`),
+          fetch(`/api/affiliator/links?affiliatorId=${user.id}`),
+          fetch(`/api/affiliator/commissions?affiliatorId=${user.id}`),
+        ]);
+
+        if (statsResponse.ok && linksResponse.ok && commissionsResponse.ok) {
+          const statsData = await statsResponse.json();
+          const linksData = await linksResponse.json();
+          const commissionsData = await commissionsResponse.json();
+          setStats(statsData);
+          setAffiliateLinks(linksData);
+          setRecentCommissions(commissionsData.slice(0, 3)); // Get top 3 recent commissions
+        } else {
+          toast.error('Failed to load dashboard data.');
+        }
+      } catch (error) {
+        console.error('Failed to fetch initial data:', error);
+        toast.error('An error occurred while loading data.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInitialData();
+  }, [user]);
+
+  const copyLink = (code: string, productSlug: string) => {
+    const link = `${window.location.origin}/checkout/${productSlug}?ref=${code}`;
     navigator.clipboard.writeText(link);
     toast.success('Link copied to clipboard!');
+  };
+
+  const getCommissionStatusBadge = (status: Commission['status']) => {
+    const styles: Record<Commission['status'], string> = {
+      pending: 'bg-accent/20 text-accent-foreground',
+      approved: 'bg-primary/20 text-primary',
+      paid: 'bg-success/20 text-success',
+      cancelled: 'bg-destructive/20 text-destructive', // Commissions from API can have 'cancelled'
+    };
+    return styles[status] || 'bg-gray-100 text-gray-800';
   };
 
   return (
@@ -53,34 +96,42 @@ export default function AffiliatorDashboard() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard
-            title="Total Earnings"
-            value="$1,039"
-            icon={DollarSign}
-            trend={{ value: 15, isPositive: true }}
-            variant="primary"
-            delay={0}
-          />
-          <StatCard
-            title="Active Links"
-            value="3"
-            icon={LinkIcon}
-            delay={0.1}
-          />
-          <StatCard
-            title="Total Conversions"
-            value="25"
-            icon={ShoppingCart}
-            trend={{ value: 8, isPositive: true }}
-            delay={0.2}
-          />
-          <StatCard
-            title="Conversion Rate"
-            value="5.1%"
-            icon={TrendingUp}
-            trend={{ value: 2, isPositive: true }}
-            delay={0.3}
-          />
+          {loading ? (
+            <>
+              <Skeleton className="h-32" />
+              <Skeleton className="h-32" />
+              <Skeleton className="h-32" />
+              <Skeleton className="h-32" />
+            </>
+          ) : (
+            <>
+              <StatCard
+                title="Total Earnings"
+                value={`$${stats?.totalCommissions.toLocaleString() || '0'}`}
+                icon={DollarSign}
+                variant="primary"
+                delay={0}
+              />
+              <StatCard
+                title="Active Links"
+                value={affiliateLinks.length.toString()}
+                icon={LinkIcon}
+                delay={0.1}
+              />
+              <StatCard
+                title="Total Conversions"
+                value={stats?.totalOrders.toString() || '0'}
+                icon={ShoppingCart}
+                delay={0.2}
+              />
+              <StatCard
+                title="Conversion Rate"
+                value={`${stats?.conversionRate || '0.00'}%`}
+                icon={TrendingUp}
+                delay={0.3}
+              />
+            </>
+          )}
         </div>
 
         {/* Content Grid */}
@@ -99,41 +150,56 @@ export default function AffiliatorDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {affiliateLinks.map((link) => (
-                    <div key={link.id} className="p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-medium text-foreground">{link.product}</h3>
-                        <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            onClick={() => copyLink(link.code)}
-                          >
-                            <Copy className="w-4 h-4" />
-                          </Button>
-                          <Button size="sm" variant="ghost">
-                            <ExternalLink className="w-4 h-4" />
-                          </Button>
+                {loading ? (
+                  <div className="space-y-4">
+                    <Skeleton className="h-20" />
+                    <Skeleton className="h-20" />
+                  </div>
+                ) : affiliateLinks.length > 0 ? (
+                  <div className="space-y-4">
+                    {affiliateLinks.map((link, index) => (
+                      <div key={link.id} className="p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="font-medium text-foreground">{link.product?.name || 'Unknown Product'}</h3>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              onClick={() => copyLink(link.code, link.product?.slug || 'unknown')}
+                            >
+                              <Copy className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost">
+                              <ExternalLink className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">Code</p>
+                            <p className="font-semibold text-foreground">{link.code}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Commission</p>
+                            <p className="font-semibold text-foreground">
+                              {link.product?.commissionValue && link.product?.commissionType
+                                ? `${link.product.commissionValue}${link.product.commissionType === 'percentage' ? '%' : ''}`
+                                : 'N/A'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Status</p>
+                            <Badge variant={link.isActive ? 'default' : 'secondary'}>
+                              {link.isActive ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
-                      <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Clicks</p>
-                          <p className="font-semibold text-foreground">{link.clicks}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Conversions</p>
-                          <p className="font-semibold text-foreground">{link.conversions}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Earnings</p>
-                          <p className="font-semibold text-primary">${link.earnings}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-center py-8">No affiliate links yet.</p>
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -152,31 +218,34 @@ export default function AffiliatorDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {recentCommissions.map((commission) => (
-                    <div key={commission.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors">
-                      <div>
-                        <p className="font-medium text-foreground">{commission.product}</p>
-                        <p className="text-sm text-muted-foreground">{commission.date}</p>
+                {loading ? (
+                  <div className="space-y-4">
+                    <Skeleton className="h-20" />
+                    <Skeleton className="h-20" />
+                  </div>
+                ) : recentCommissions.length > 0 ? (
+                  <div className="space-y-4">
+                    {recentCommissions.map((commission) => (
+                      <div key={commission.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors">
+                        <div>
+                          <p className="font-medium text-foreground">{commission.productName}</p>
+                          <p className="text-sm text-muted-foreground">{new Date(commission.date).toLocaleDateString()}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-foreground">${commission.amount}</p>
+                          <Badge 
+                            variant="secondary"
+                            className={getCommissionStatusBadge(commission.status)}
+                          >
+                            {commission.status}
+                          </Badge>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-foreground">${commission.amount}</p>
-                        <Badge 
-                          variant="secondary"
-                          className={
-                            commission.status === 'paid' 
-                              ? 'bg-success/20 text-success' 
-                              : commission.status === 'approved'
-                                ? 'bg-primary/20 text-primary'
-                                : 'bg-accent/20 text-accent-foreground'
-                          }
-                        >
-                          {commission.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-center py-8">No recent commissions.</p>
+                )}
               </CardContent>
             </Card>
           </motion.div>

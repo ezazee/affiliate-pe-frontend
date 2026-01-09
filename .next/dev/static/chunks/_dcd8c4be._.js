@@ -15,36 +15,6 @@ var _s = __turbopack_context__.k.signature(), _s1 = __turbopack_context__.k.sign
 "use client";
 ;
 const AuthContext = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createContext"])(undefined);
-// Mock users for demo - will be replaced with backend
-const mockUsers = [
-    {
-        id: '1',
-        name: 'Admin User',
-        email: 'admin@example.com',
-        password: 'admin123',
-        role: 'admin',
-        status: 'approved',
-        createdAt: new Date('2024-01-01')
-    },
-    {
-        id: '2',
-        name: 'John Affiliator',
-        email: 'john@example.com',
-        password: 'john123',
-        role: 'affiliator',
-        status: 'approved',
-        createdAt: new Date('2024-01-15')
-    },
-    {
-        id: '3',
-        name: 'Pending User',
-        email: 'pending@example.com',
-        password: 'pending123',
-        role: 'affiliator',
-        status: 'pending',
-        createdAt: new Date('2024-02-01')
-    }
-];
 function AuthProvider({ children }) {
     _s();
     const [user, setUser] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
@@ -58,55 +28,69 @@ function AuthProvider({ children }) {
     }["AuthProvider.useEffect"], []);
     const login = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
         "AuthProvider.useCallback[login]": async (email, password)=>{
-            // Simulate API call
-            await new Promise({
-                "AuthProvider.useCallback[login]": (resolve)=>setTimeout(resolve, 500)
-            }["AuthProvider.useCallback[login]"]);
-            const foundUser = mockUsers.find({
-                "AuthProvider.useCallback[login].foundUser": (u)=>u.email === email && u.password === password
-            }["AuthProvider.useCallback[login].foundUser"]);
-            if (foundUser) {
-                const { password: _, ...userWithoutPassword } = foundUser;
-                setUser(userWithoutPassword);
-                localStorage.setItem('affiliate_user', JSON.stringify(userWithoutPassword));
-                return true;
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email,
+                        password
+                    })
+                });
+                if (response.ok) {
+                    const { user } = await response.json();
+                    setUser(user);
+                    localStorage.setItem('affiliate_user', JSON.stringify(user));
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Login failed:', error);
+                return false;
             }
-            return false;
         }
     }["AuthProvider.useCallback[login]"], []);
     const register = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
         "AuthProvider.useCallback[register]": async (name, email, password)=>{
-            // Simulate API call
-            await new Promise({
-                "AuthProvider.useCallback[register]": (resolve)=>setTimeout(resolve, 500)
-            }["AuthProvider.useCallback[register]"]);
-            // Check if user exists
-            if (mockUsers.some({
-                "AuthProvider.useCallback[register]": (u)=>u.email === email
-            }["AuthProvider.useCallback[register]"])) {
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name,
+                        email,
+                        password
+                    })
+                });
+                if (response.ok) {
+                    const { user } = await response.json();
+                    setUser(user);
+                    localStorage.setItem('affiliate_user', JSON.stringify(user));
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Registration failed:', error);
                 return false;
             }
-            const newUser = {
-                id: String(mockUsers.length + 1),
-                name,
-                email,
-                role: 'affiliator',
-                status: 'pending',
-                createdAt: new Date()
-            };
-            mockUsers.push({
-                ...newUser,
-                password
-            });
-            setUser(newUser);
-            localStorage.setItem('affiliate_user', JSON.stringify(newUser));
-            return true;
         }
     }["AuthProvider.useCallback[register]"], []);
     const logout = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
-        "AuthProvider.useCallback[logout]": ()=>{
-            setUser(null);
-            localStorage.removeItem('affiliate_user');
+        "AuthProvider.useCallback[logout]": async ()=>{
+            try {
+                await fetch('/api/auth/logout', {
+                    method: 'POST'
+                });
+            } catch (error) {
+                console.error('Logout failed:', error);
+            } finally{
+                setUser(null);
+                localStorage.removeItem('affiliate_user');
+            }
         }
     }["AuthProvider.useCallback[logout]"], []);
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(AuthContext.Provider, {
@@ -120,7 +104,7 @@ function AuthProvider({ children }) {
         children: children
     }, void 0, false, {
         fileName: "[project]/src/contexts/AuthContext.tsx",
-        lineNumber: 103,
+        lineNumber: 84,
         columnNumber: 5
     }, this);
 }

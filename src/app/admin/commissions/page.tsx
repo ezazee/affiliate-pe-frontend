@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, DollarSign, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,18 +22,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { commissions as initialCommissions } from '@/data/mockData';
 import { Commission, CommissionStatus } from '@/types';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminCommissions() {
-  const [commissions, setCommissions] = useState<Commission[]>(initialCommissions);
+  const [commissions, setCommissions] = useState<Commission[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
+  useEffect(() => {
+    const fetchCommissions = async () => {
+      try {
+        const response = await fetch('/api/admin/commissions');
+        if (response.ok) {
+          const data = await response.json();
+          setCommissions(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch commissions:', error);
+        toast.error('Failed to load commissions.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCommissions();
+  }, []);
+
   const filteredCommissions = commissions.filter(c => {
-    const matchesSearch = c.affiliateName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          c.productName.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (c.affiliateName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (c.productName || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -71,7 +90,6 @@ export default function AdminCommissions() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{commissions.length}</div>
-              <p className="text-xs text-muted-foreground">+10.1% from last month</p>
             </CardContent>
           </Card>
           <Card className="shadow-card">
@@ -83,7 +101,6 @@ export default function AdminCommissions() {
               <div className="text-2xl font-bold">
                 ${commissions.reduce((acc, c) => acc + c.amount, 0).toFixed(2)}
               </div>
-              <p className="text-xs text-muted-foreground">+5.5% from last month</p>
             </CardContent>
           </Card>
           <Card className="shadow-card">
@@ -95,7 +112,6 @@ export default function AdminCommissions() {
               <div className="text-2xl font-bold">
                 {commissions.filter(c => c.status === 'pending').length}
               </div>
-              <p className="text-xs text-muted-foreground">Awaiting payment</p>
             </CardContent>
           </Card>
           <Card className="shadow-card">
@@ -107,7 +123,6 @@ export default function AdminCommissions() {
               <div className="text-2xl font-bold">
                 {commissions.filter(c => c.status === 'paid').length}
               </div>
-              <p className="text-xs text-muted-foreground">Successfully disbursed</p>
             </CardContent>
           </Card>
         </div>
@@ -140,81 +155,89 @@ export default function AdminCommissions() {
         <Card className="shadow-card">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Affiliator</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredCommissions.length > 0 ? (
-                    filteredCommissions.map((commission) => (
-                      <motion.tr
-                        key={commission.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
-                      >
-                        <TableCell className="font-medium">{commission.affiliateName}</TableCell>
-                        <TableCell>{commission.productName}</TableCell>
-                        <TableCell>{commission.orderId}</TableCell>
-                        <TableCell>${commission.amount.toFixed(2)}</TableCell>
-                        <TableCell>
-                          <Badge className={getStatusBadge(commission.status)}>
-                            {commission.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{new Date(commission.date).toLocaleDateString()}</TableCell>
-                        <TableCell className="text-right">
-                          {commission.status === 'pending' && (
-                            <div className="flex justify-end gap-2">
-                              <Button 
-                                size="sm" 
-                                variant="default" 
-                                onClick={() => updateCommissionStatus(commission.id, 'paid')}
-                              >
-                                <CheckCircle className="w-4 h-4 mr-1" />
-                                Pay
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="text-destructive"
-                                onClick={() => updateCommissionStatus(commission.id, 'cancelled')}
-                              >
-                                <XCircle className="w-4 h-4 mr-1" />
-                                Cancel
-                              </Button>
-                            </div>
-                          )}
-                           {commission.status !== 'pending' && (
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              disabled
-                            >
-                              No Actions
-                            </Button>
-                          )}
-                        </TableCell>
-                      </motion.tr>
-                    ))
-                  ) : (
+              {loading ? (
+                <div className="p-4">
+                  <Skeleton className="h-16 mb-2" />
+                  <Skeleton className="h-16 mb-2" />
+                  <Skeleton className="h-16" />
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                        No commissions found.
-                      </TableCell>
+                      <TableHead>Affiliator</TableHead>
+                      <TableHead>Product</TableHead>
+                      <TableHead>Order ID</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredCommissions.length > 0 ? (
+                      filteredCommissions.map((commission) => (
+                        <motion.tr
+                          key={commission.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+                        >
+                          <TableCell className="font-medium">{commission.affiliateName}</TableCell>
+                          <TableCell>{commission.productName}</TableCell>
+                          <TableCell>{commission.orderId}</TableCell>
+                          <TableCell>${commission.amount.toFixed(2)}</TableCell>
+                          <TableCell>
+                            <Badge className={getStatusBadge(commission.status)}>
+                              {commission.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{new Date(commission.date).toLocaleDateString()}</TableCell>
+                          <TableCell className="text-right">
+                            {commission.status === 'pending' && (
+                              <div className="flex justify-end gap-2">
+                                <Button 
+                                  size="sm" 
+                                  variant="default" 
+                                  onClick={() => updateCommissionStatus(commission.id, 'paid')}
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-1" />
+                                  Pay
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="text-destructive"
+                                  onClick={() => updateCommissionStatus(commission.id, 'cancelled')}
+                                >
+                                  <XCircle className="w-4 h-4 mr-1" />
+                                  Cancel
+                                </Button>
+                              </div>
+                            )}
+                            {commission.status !== 'pending' && (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                disabled
+                              >
+                                No Actions
+                              </Button>
+                            )}
+                          </TableCell>
+                        </motion.tr>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                          No commissions found.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              )}
             </div>
           </CardContent>
         </Card>

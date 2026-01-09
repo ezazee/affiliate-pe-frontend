@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Edit, Trash2, Package, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,12 +22,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { products as initialProducts } from '@/data/mockData';
 import { Product, CommissionType } from '@/types';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminProducts() {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -40,6 +41,24 @@ export default function AdminProducts() {
     commissionType: 'percentage' as CommissionType,
     commissionValue: '',
   });
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch('/api/admin/products');
+        if (response.ok) {
+          const data = await response.json();
+          setProducts(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch products:', error);
+        toast.error('Failed to load products.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
 
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -238,62 +257,70 @@ export default function AdminProducts() {
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProducts.map((product, index) => (
-            <motion.div
-              key={product.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-            >
-              <Card className="shadow-card hover:shadow-card-hover transition-all duration-300 overflow-hidden">
-                {product.imageUrl && (
-                  <div className="h-40 overflow-hidden">
-                    <img 
-                      src={product.imageUrl} 
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="font-semibold text-foreground">{product.name}</h3>
-                      <p className="text-2xl font-display font-bold text-primary">${product.price}</p>
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Skeleton className="h-80" />
+            <Skeleton className="h-80" />
+            <Skeleton className="h-80" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredProducts.map((product, index) => (
+              <motion.div
+                key={product.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+              >
+                <Card className="shadow-card hover:shadow-card-hover transition-all duration-300 overflow-hidden">
+                  {product.imageUrl && (
+                    <div className="h-40 overflow-hidden">
+                      <img 
+                        src={product.imageUrl} 
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
-                    <Badge 
-                      variant={product.isActive ? 'default' : 'secondary'}
-                      className={product.isActive ? 'bg-success text-success-foreground' : ''}
-                      onClick={() => toggleActive(product.id)}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      {product.isActive ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                    {product.description}
-                  </p>
-                  <div className="flex items-center justify-between pt-3 border-t border-border">
-                    <span className="text-sm text-muted-foreground">
-                      Commission: {product.commissionValue}{product.commissionType === 'percentage' ? '%' : '$'}
-                    </span>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="ghost" onClick={() => handleOpenDialog(product)}>
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(product.id)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                  )}
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="font-semibold text-foreground">{product.name}</h3>
+                        <p className="text-2xl font-display font-bold text-primary">${product.price}</p>
+                      </div>
+                      <Badge 
+                        variant={product.isActive ? 'default' : 'secondary'}
+                        className={product.isActive ? 'bg-success text-success-foreground' : ''}
+                        onClick={() => toggleActive(product.id)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        {product.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
+                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                      {product.description}
+                    </p>
+                    <div className="flex items-center justify-between pt-3 border-t border-border">
+                      <span className="text-sm text-muted-foreground">
+                        Commission: {product.commissionValue}{product.commissionType === 'percentage' ? '%' : '$'}
+                      </span>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="ghost" onClick={() => handleOpenDialog(product)}>
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(product.id)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        )}
 
-        {filteredProducts.length === 0 && (
+        {!loading && filteredProducts.length === 0 && (
           <div className="text-center py-12">
             <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
             <p className="text-muted-foreground">No products found</p>

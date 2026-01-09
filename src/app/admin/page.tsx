@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   ShoppingCart, 
@@ -13,6 +13,7 @@ import {
 import { StatCard } from '@/components/dashboard/StatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Mock data for demo
 const recentOrders = [
@@ -27,7 +28,35 @@ const pendingAffiliators = [
   { id: '2', name: 'Frank Miller', email: 'frank@example.com', date: '2024-01-14' },
 ];
 
+interface AdminStats {
+  totalRevenue: number;
+  totalAffiliators: number;
+  totalOrders: number;
+  totalCommissions: number;
+}
+
 export default function AdminDashboard() {
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/admin/stats');
+        if (response.ok) {
+          const data = await response.json();
+          setStats(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch admin stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
   return (
       <div className="space-y-8">
         {/* Header */}
@@ -42,34 +71,42 @@ export default function AdminDashboard() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard
-            title="Total Orders"
-            value="156"
-            icon={ShoppingCart}
-            trend={{ value: 12, isPositive: true }}
-            delay={0}
-          />
-          <StatCard
-            title="Total Revenue"
-            value="$24,580"
-            icon={DollarSign}
-            trend={{ value: 8, isPositive: true }}
-            variant="primary"
-            delay={0.1}
-          />
-          <StatCard
-            title="Active Affiliators"
-            value="42"
-            icon={Users}
-            trend={{ value: 5, isPositive: true }}
-            delay={0.2}
-          />
-          <StatCard
-            title="Products"
-            value="12"
-            icon={Package}
-            delay={0.3}
-          />
+          {loading ? (
+            <>
+              <Skeleton className="h-32" />
+              <Skeleton className="h-32" />
+              <Skeleton className="h-32" />
+              <Skeleton className="h-32" />
+            </>
+          ) : (
+            <>
+              <StatCard
+                title="Total Orders"
+                value={stats?.totalOrders.toString() || '0'}
+                icon={ShoppingCart}
+                delay={0}
+              />
+              <StatCard
+                title="Total Revenue"
+                value={`$${stats?.totalRevenue.toLocaleString() || '0'}`}
+                icon={DollarSign}
+                variant="primary"
+                delay={0.1}
+              />
+              <StatCard
+                title="Active Affiliators"
+                value={stats?.totalAffiliators.toString() || '0'}
+                icon={Users}
+                delay={0.2}
+              />
+              <StatCard
+                title="Total Commissions"
+                value={`$${stats?.totalCommissions.toLocaleString() || '0'}`}
+                icon={Package}
+                delay={0.3}
+              />
+            </>
+          )}
         </div>
 
         {/* Content Grid */}
@@ -158,3 +195,4 @@ export default function AdminDashboard() {
       </div>
   );
 }
+
