@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    serverComponentsExternalPackages: ["mongodb"],
+  },
+
   images: {
     remotePatterns: [
       {
@@ -9,9 +13,6 @@ const nextConfig = {
         pathname: "/**",
       },
     ],
-    experimental: {
-      serverComponentsExternalPackages: ["mongodb"],
-    },
   },
 };
 
