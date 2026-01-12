@@ -24,15 +24,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const loadUserFromLocalStorage = async () => {
       try {
-        const stored = localStorage.getItem('affiliate_user');
+        const stored = localStorage.getItem('affiliate_user_session');
         if (stored) {
-          let parsedUser: User = JSON.parse(stored);
+          const sessionData = JSON.parse(stored);
+          const oneDay = 24 * 60 * 60 * 1000;
+          const isExpired = new Date().getTime() - sessionData.timestamp > oneDay;
+
+          if (isExpired) {
+            console.log('AuthContext: Session expired, logging out.');
+            localStorage.removeItem('affiliate_user_session');
+            setUser(null);
+            return;
+          }
+          
+          let parsedUser: User = sessionData.user;
 
           if (parsedUser._id && !parsedUser.id) {
             parsedUser.id = parsedUser._id.toString();
           }
 
-          // If referralCode is missing, fetch the full user data from the server
           if (!parsedUser.referralCode && parsedUser.id) {
             console.log('AuthContext: User in localStorage is missing referralCode, fetching from server...');
             const response = await fetch(`/api/user/${parsedUser.id}`);
@@ -40,7 +50,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               const { user: freshUser } = await response.json();
               if (freshUser) {
                 parsedUser = freshUser;
-                localStorage.setItem('affiliate_user', JSON.stringify(freshUser));
+                const newSessionData = { user: freshUser, timestamp: new Date().getTime() };
+                localStorage.setItem('affiliate_user_session', JSON.stringify(newSessionData));
                 console.log('AuthContext: Fetched fresh user data with referralCode:', freshUser);
               }
             }
@@ -64,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         console.error("AuthContext: Failed to load or refresh user from localStorage", error);
-        localStorage.removeItem('affiliate_user');
+        localStorage.removeItem('affiliate_user_session');
         setUser(null);
       } finally {
         setLoading(false);
@@ -75,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router, pathname]);
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
-    setLoading(true); // Set loading true on login attempt
+    setLoading(true);
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -87,20 +98,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         const { user: loggedInUser } = await response.json();
-        // Ensure 'id' is set from '_id' for consistency with User interface
         if (loggedInUser._id && !loggedInUser.id) {
           loggedInUser.id = loggedInUser._id.toString();
         }
-        // Ensure 'id' is set from '_id' for consistency with User interface
-        if (loggedInUser._id && !loggedInUser.id) {
-          loggedInUser.id = loggedInUser._id.toString();
-        }
-        // Ensure 'id' is set from '_id' for consistency with User interface
-        if (loggedInUser._id && !loggedInUser.id) {
-          loggedInUser.id = loggedInUser._id.toString();
-        }
+        
+        const sessionData = {
+            user: loggedInUser,
+            timestamp: new Date().getTime(),
+        };
+        
         setUser(loggedInUser);
-        localStorage.setItem('affiliate_user', JSON.stringify(loggedInUser));
+        localStorage.setItem('affiliate_user_session', JSON.stringify(sessionData));
         console.log('AuthContext: User logged in:', loggedInUser);
 
         if (loggedInUser.status === 'pending') {
@@ -117,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('AuthContext: Login failed:', error);
       return false;
     } finally {
-      setLoading(false); // Set loading to false after login attempt
+      setLoading(false);
     }
   }, [router]);
 

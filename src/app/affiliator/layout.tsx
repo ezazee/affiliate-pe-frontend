@@ -31,10 +31,20 @@ const affiliatorNavItems = [
 ];
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        router.push('/login');
+      } else if (user.role !== 'affiliator') {
+        router.push('/admin');
+      }
+    }
+  }, [user, loading, router]);
 
   const navItems = affiliatorNavItems;
 
@@ -42,7 +52,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     logout();
     router.push('/login');
   };
-
+  
   const Logo = () => (
     <div className="flex items-center gap-2">
       <Image 
@@ -55,6 +65,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <span className="font-display font-bold text-lg text-foreground">Affiliate</span>
     </div>
   );
+
+  // Prevent rendering children if the user is not the correct role or is loading
+  if (loading || !user || user.role !== 'affiliator') {
+    return (
+        <div className="flex h-screen items-center justify-center bg-background">
+            <p className="text-muted-foreground animate-pulse">Memuat...</p>
+        </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
