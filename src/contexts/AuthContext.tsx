@@ -57,7 +57,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(parsedUser);
 
           // Handle redirects
-          if (parsedUser.status === 'pending' && pathname !== '/waiting-approval') {
+          const publicPaths = ['/login', '/register', '/'];
+          if (parsedUser.status === 'pending' && pathname !== '/waiting-approval' && !publicPaths.includes(pathname)) {
             router.push('/waiting-approval');
           } else if ((parsedUser.status === 'rejected' || parsedUser.status === 'suspended') && pathname !== '/account-status') {
             router.push(`/account-status?status=${parsedUser.status}`);

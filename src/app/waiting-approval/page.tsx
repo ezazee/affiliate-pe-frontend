@@ -12,6 +12,34 @@ export default function WaitingApproval() {
   const { user, logout } = useAuth();
   const router = useRouter();
 
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/user/${user.id}`);
+        if (response.ok) {
+          const { user: freshUser } = await response.json();
+          if (freshUser && freshUser.status === 'approved') {
+            toast.success("Akun Anda telah disetujui! Mengalihkan ke dasbor...");
+            clearInterval(interval);
+            
+            // CRITICAL FIX: Update localStorage before reloading
+            const newSessionData = { user: freshUser, timestamp: new Date().getTime() };
+            localStorage.setItem('affiliate_user_session', JSON.stringify(newSessionData));
+            
+            // Reload the page, AuthContext will handle the redirect
+            setTimeout(() => window.location.reload(), 1500);
+          }
+        }
+      } catch (error) {
+        console.error("Gagal memeriksa status persetujuan:", error);
+      }
+    }, 5000); // Check every 5 seconds
+
+    return () => clearInterval(interval); // Cleanup on component unmount
+  }, [user]);
+
   const handleLogout = () => {
     logout();
     router.push('/login');
