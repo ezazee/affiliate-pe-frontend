@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     const orders = await db.collection<Order>('orders').find({ affiliatorId }).sort({ createdAt: -1 }).toArray();
 
     // Collect productIds as strings
-    const productIds = [...new Set(orders.map(order => order.productId))];
+    const productIds = Array.from(new Set(orders.map(order => order.productId)));
     // Find products by their string 'id' field
     const products = await db.collection('products').find({ id: { $in: productIds } }).toArray();
 

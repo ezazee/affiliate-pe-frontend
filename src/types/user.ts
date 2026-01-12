@@ -6,7 +6,7 @@ export type UserStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
 
 export interface User {
 
-  _id?: ObjectId | string;
+  _id: ObjectId;
 
   id: string;
 

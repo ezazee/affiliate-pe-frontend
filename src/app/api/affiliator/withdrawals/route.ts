@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
-import { Commission, Withdrawal } from '@/types';
+import { Commission } from '@/types';
+import { Withdrawal } from '@/types/withdrawal';
 import { ObjectId } from 'mongodb';
 
 // GET handler to fetch withdrawal history
