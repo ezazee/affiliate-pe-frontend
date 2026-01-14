@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import CheckoutClient from './CheckoutClient';
+import { getProductBySlug, getUserByReferralCode, getAffiliateLinkByAffiliatorProduct } from '@/services/dataService';
 
 // Generate dynamic metadata for SEO and social sharing
 export async function generateMetadata({ params, searchParams }: { 
@@ -7,20 +8,47 @@ export async function generateMetadata({ params, searchParams }: {
   searchParams: { ref?: string } 
 }): Promise<Metadata> {
   try {
-    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/checkout/${params.productSlug}?ref=${searchParams.ref}`, {
-      cache: 'no-store'
-    });
+    const refCode = searchParams.ref;
     
-    if (!response.ok) {
+    if (!refCode) {
       return {
         title: 'Checkout - Affiliate PE Skinpro',
         description: 'Selesaikan pesanan produk Anda',
       };
     }
 
-    const data = await response.json();
-    const { product, affiliator } = data;
+    // 1. Find the affiliator by their referral code
+    const affiliator = await getUserByReferralCode(refCode);
+    
+    if (!affiliator || affiliator.status !== 'approved') {
+      return {
+        title: 'Checkout - Affiliate PE Skinpro',
+        description: 'Selesaikan pesanan produk Anda',
+      };
+    }
+
+    // 2. Find the product by its slug
+    const product = await getProductBySlug(params.productSlug);
+    
+    if (!product) {
+      return {
+        title: 'Checkout - Affiliate PE Skinpro',
+        description: 'Selesaikan pesanan produk Anda',
+      };
+    }
+
+    // 3. Check if affiliate link exists
+    const affiliateLink = await getAffiliateLinkByAffiliatorProduct(affiliator.id, product.id);
+    
+    if (!affiliateLink || !affiliateLink.isActive) {
+      return {
+        title: 'Checkout - Affiliate PE Skinpro',
+        description: 'Selesaikan pesanan produk Anda',
+      };
+    }
+
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
+    const imageUrl = product.imageUrl;
 
     return {
       title: `Beli ${product.name} - ${affiliator.name} | Affiliate PE Skinpro`,
@@ -30,22 +58,22 @@ export async function generateMetadata({ params, searchParams }: {
       openGraph: {
         title: `Beli ${product.name} - ${affiliator.name}`,
         description: `${product.description?.substring(0, 160)}...`,
-        images: product.imageUrl ? [
+        images: imageUrl ? [
           {
-            url: product.imageUrl,
+            url: imageUrl.startsWith('http') ? imageUrl : `${baseUrl}${imageUrl}`,
             width: 1200,
             height: 630,
             alt: product.name,
           }
         ] : [],
         type: 'website',
-        url: `${baseUrl}/checkout/${params.productSlug}?ref=${searchParams.ref}`,
+        url: `${baseUrl}/checkout/${params.productSlug}?ref=${refCode}`,
       },
       twitter: {
         card: 'summary_large_image',
         title: `Beli ${product.name} - ${affiliator.name}`,
         description: `${product.description?.substring(0, 160)}...`,
-        images: product.imageUrl ? [product.imageUrl] : [],
+        images: imageUrl ? [imageUrl.startsWith('http') ? imageUrl : `${baseUrl}${imageUrl}`] : [],
       },
     };
   } catch (error) {
