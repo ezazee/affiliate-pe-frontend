@@ -89,27 +89,10 @@ const products = [
 const users = [
   {
     name: "Admin User",
-    email: "admin@example.com",
-    password: "password123",
+    email: "admin@peskinpro.id",
+    password: "adminpeskinpro",
     role: "admin",
     status: "approved",
-    createdAt: new Date(),
-  },
-  {
-    name: "Alice Wonderland",
-    email: "alice@example.com",
-    password: "password123",
-    role: "affiliator",
-    status: "approved",
-    referralCode: "ALICE123",
-    createdAt: new Date(),
-  },
-  {
-    name: "Bob The Builder",
-    email: "bob@example.com",
-    password: "password123",
-    role: "affiliator",
-    status: "rejected",
     createdAt: new Date(),
   },
 ];
