@@ -1,118 +1,61 @@
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 import { Metadata } from 'next';
 import CheckoutClient from './CheckoutClient';
 
-/* ===========================
-   Utils
-=========================== */
-
-const getBaseUrl = () => {
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-  return 'http://localhost:3000';
-};
-
-/* ===========================
-   Metadata
-=========================== */
-
-export async function generateMetadata({
-  params,
-  searchParams,
-}: {
-  params: { productSlug: string };
-  searchParams: { ref?: string };
+// Generate dynamic metadata for SEO and social sharing
+export async function generateMetadata({ params, searchParams }: { 
+  params: { productSlug: string }; 
+  searchParams: { ref?: string } 
 }): Promise<Metadata> {
-  const baseUrl = getBaseUrl();
-
-  // ❌ TANPA REF = INVALID (RULE KAMU)
-  if (!searchParams.ref) {
-    return {
-      title: 'Link Checkout Tidak Valid',
-      description: 'Link checkout tidak valid atau tidak lengkap.',
-      openGraph: {
-        title: 'Link Checkout Tidak Valid',
-        description: 'Link checkout tidak valid atau tidak lengkap.',
-        images: [
-          {
-            url: `${baseUrl}/Logo.png`,
-            width: 1200,
-            height: 630,
-          },
-        ],
-      },
-    };
-  }
-
   try {
-    const response = await fetch(
-      `${baseUrl}/api/checkout/${params.productSlug}?ref=${searchParams.ref}`,
-      {
-        cache: 'no-store',
-      }
-    );
-
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/checkout/${params.productSlug}?ref=${searchParams.ref}`, {
+      cache: 'no-store'
+    });
+    
     if (!response.ok) {
-      throw new Error('API not ok');
+      return {
+        title: 'Checkout - Affiliate PE Skinpro',
+        description: 'Selesaikan pesanan produk Anda',
+      };
     }
 
     const data = await response.json();
     const { product, affiliator } = data;
 
-    // HARD SAFETY
-    if (!product || !affiliator) {
-      throw new Error('Invalid API data');
-    }
-
-    const title = `${product.name} - Rekomendasi ${affiliator.name}`;
-    const description = `Beli ${product.name} hanya Rp ${product.price.toLocaleString(
-      'id-ID'
-    )}. ${product.description}`;
-
     return {
-      title,
-      description,
+      title: `Beli ${product.name} - ${affiliator.name} | Affiliate PE Skinpro`,
+      description: `Beli ${product.name} melalui ${affiliator.name}. ${product.description?.substring(0, 160)}...`,
+      keywords: [product.name, 'affiliate', 'PE Skinpro', 'skincare', affiliator.name],
+      authors: [{ name: affiliator.name }],
       openGraph: {
-        title,
-        description,
-        type: 'website',
-        url: `${baseUrl}/checkout/${params.productSlug}?ref=${searchParams.ref}`,
-        images: [
+        title: `Beli ${product.name} - ${affiliator.name}`,
+        description: `${product.description?.substring(0, 160)}...`,
+        images: product.imageUrl ? [
           {
-            url: product.imageUrl.endsWith('.jpg')
-              ? product.imageUrl
-              : `${product.imageUrl}.jpg`,
+            url: product.imageUrl,
             width: 1200,
             height: 630,
             alt: product.name,
-          },
-        ],
+          }
+        ] : [],
+        type: 'website',
+        url: `${baseUrl}/checkout/${params.productSlug}?ref=${searchParams.ref}`,
       },
       twitter: {
         card: 'summary_large_image',
-        title,
-        description,
-        images: [
-          product.imageUrl.endsWith('.jpg')
-            ? product.imageUrl
-            : `${product.imageUrl}.jpg`,
-        ],
+        title: `Beli ${product.name} - ${affiliator.name}`,
+        description: `${product.description?.substring(0, 160)}...`,
+        images: product.imageUrl ? [product.imageUrl] : [],
       },
     };
-  } catch (err) {
+  } catch (error) {
+    console.error('Error generating metadata:', error);
     return {
-      title: 'Checkout Produk - PE Skinpro',
-      description: 'Selesaikan pembelian produk PE Skinpro Anda',
+      title: 'Checkout - Affiliate PE Skinpro',
+      description: 'Selesaikan pesanan produk Anda',
     };
   }
 }
-
-/* ===========================
-   Page
-=========================== */
 
 export default function CheckoutPage() {
   return <CheckoutClient />;
