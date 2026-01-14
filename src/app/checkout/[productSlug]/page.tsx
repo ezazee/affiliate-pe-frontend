@@ -1,8 +1,11 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { Metadata } from 'next';
 import CheckoutClient from './CheckoutClient';
 
 /* ===========================
-   STATIC PRODUCT MAP (OG ONLY)
+   STATIC PRODUCT MAP (OG SAFE)
 =========================== */
 
 const PRODUCT_MAP: Record<
@@ -21,14 +24,6 @@ const PRODUCT_MAP: Record<
     price: 144000,
     image:
       'https://blsfkizrchqzahqa.public.blob.vercel-storage.com/HONEY-CLEANSING-GEL.jpg',
-  },
-  'cica-b5-refreshing-toner': {
-    name: 'CICA-B5 Refreshing Toner',
-    description:
-      'Toner dengan CICA dan Vitamin B5 untuk menenangkan kulit dan memperkuat skin barrier.',
-    price: 144000,
-    image:
-      'https://blsfkizrchqzahqa.public.blob.vercel-storage.com/CICA-B5-REFRESHING.jpg',
   },
   'hydro-restorative-cream': {
     name: 'Hydro Restorative Cream',
@@ -51,7 +46,7 @@ const getBaseUrl = () =>
     : 'http://localhost:3000');
 
 /* ===========================
-   Metadata (OG SAFE)
+   Metadata (NO DB, NO CACHE)
 =========================== */
 
 export async function generateMetadata({
@@ -64,7 +59,7 @@ export async function generateMetadata({
   const baseUrl = getBaseUrl();
   const product = PRODUCT_MAP[params.productSlug];
 
-  // ❌ Tanpa ref atau produk tidak ada → invalid
+  // ❌ TANPA REF = INVALID (RULE KAMU)
   if (!searchParams.ref || !product) {
     return {
       title: 'Link Checkout Tidak Valid',
@@ -83,7 +78,7 @@ export async function generateMetadata({
     };
   }
 
-  // ✅ DENGAN REF → LANGSUNG OG PRODUK (TANPA DB)
+  // ✅ DENGAN REF = OG PRODUK
   const title = `${product.name} - Checkout Resmi PE Skinpro`;
   const description = `Beli ${product.name} hanya Rp ${product.price.toLocaleString(
     'id-ID'
