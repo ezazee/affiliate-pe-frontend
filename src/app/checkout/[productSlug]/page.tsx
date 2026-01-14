@@ -76,7 +76,7 @@ const resolveImage = (imageUrl?: string, baseUrl?: string) => {
       'https://blsfkizrchqzahqa.public.blob.vercel-storage.com/HONEY-CLEANSING-GEL.jpg',
   };
 
-  return imageMap[imageUrl] || imageUrl;
+  return imageMap[imageUrl] || `${baseUrl}/Logo.png`;
 };
 
 /* ===========================
@@ -94,12 +94,36 @@ export async function generateMetadata({
   const refCode = searchParams.ref;
 
   try {
-    // Default fallback
+    /* ===========================
+       FALLBACK (REF INVALID / MISSING)
+       ➜ TETAP ADA OG IMAGE
+    =========================== */
+
     const fallback: Metadata = {
       title: 'Checkout Produk - PE Skinpro',
       description: 'Selesaikan pembelian produk PE Skinpro Anda',
+      openGraph: {
+        title: 'Checkout Produk - PE Skinpro',
+        description: 'Selesaikan pembelian produk PE Skinpro Anda',
+        type: 'website',
+        images: [
+          {
+            url: `${baseUrl}/Logo.png`,
+            width: 1200,
+            height: 630,
+            alt: 'PE Skinpro',
+          },
+        ],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: 'Checkout Produk - PE Skinpro',
+        description: 'Selesaikan pembelian produk PE Skinpro Anda',
+        images: [`${baseUrl}/Logo.png`],
+      },
     };
 
+    // ❗ RULE KAMU TETAP DIJAGA
     if (!refCode) return fallback;
 
     const affiliator = await getUserByReferralCode(refCode);
@@ -114,6 +138,10 @@ export async function generateMetadata({
 
     if (!affiliateLink || !affiliateLink.isActive) return fallback;
 
+    /* ===========================
+       VALID REF
+    =========================== */
+
     const productTitle = generateProductTitle(product.name);
     const description = generateDescription(product, affiliator.name);
     const image = resolveImage(product.imageUrl, baseUrl);
@@ -121,14 +149,6 @@ export async function generateMetadata({
     return {
       title: `${productTitle} - Rekomendasi ${affiliator.name}`,
       description,
-      keywords: [
-        product.name,
-        'PE Skinpro',
-        'skincare Indonesia',
-        affiliator.name,
-        'affiliate skincare',
-      ],
-      authors: [{ name: affiliator.name }],
       openGraph: {
         title: productTitle,
         description,
@@ -150,13 +170,6 @@ export async function generateMetadata({
         title: productTitle,
         description,
         images: [image],
-      },
-      other: {
-        'product:price:amount': product.price.toString(),
-        'product:price:currency': 'IDR',
-        'product:availability': 'in stock',
-        'product:brand': 'PE Skinpro',
-        'product:condition': 'new',
       },
     };
   } catch (error) {
