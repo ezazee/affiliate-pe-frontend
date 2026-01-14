@@ -3,6 +3,7 @@ import CheckoutClient from './CheckoutClient';
 import {
   getUserByReferralCode,
   getAffiliateLinkByAffiliatorProduct,
+  getProductBySlug,
 } from '@/services/dataService';
 
 /* ===========================
@@ -100,10 +101,12 @@ export async function generateMetadata({
   const baseUrl = getBaseUrl();
   const refCode = searchParams.ref;
 
-  const product = PRODUCT_MAP[params.productSlug];
+  const productOG = PRODUCT_MAP[params.productSlug];
 
-  // ❌ TANPA REF = INVALID (SESUAI RULE)
-  if (!refCode || !product) {
+  /* ===========================
+     RULE KAMU: TANPA REF = INVALID
+  =========================== */
+  if (!refCode || !productOG) {
     return {
       title: 'Link Checkout Tidak Valid',
       description: 'Link checkout tidak valid atau sudah kedaluwarsa.',
@@ -121,7 +124,9 @@ export async function generateMetadata({
     };
   }
 
-  // Validasi affiliator
+  /* ===========================
+     VALIDASI AFFILIATOR
+  =========================== */
   const affiliator = await getUserByReferralCode(refCode);
   if (!affiliator) {
     return {
@@ -130,9 +135,20 @@ export async function generateMetadata({
     };
   }
 
+  /* ===========================
+     🔥 FIX UTAMA: AMBIL PRODUCT ID
+  =========================== */
+  const productFromDb = await getProductBySlug(params.productSlug);
+  if (!productFromDb) {
+    return {
+      title: 'Link Checkout Tidak Valid',
+      description: 'Produk tidak ditemukan.',
+    };
+  }
+
   const affiliateLink = await getAffiliateLinkByAffiliatorProduct(
     affiliator.id,
-    params.productSlug as any
+    productFromDb.id
   );
 
   if (!affiliateLink || !affiliateLink.isActive) {
@@ -142,10 +158,14 @@ export async function generateMetadata({
     };
   }
 
-  const title = `${product.name} - Rekomendasi ${affiliator.name}`;
-  const description = `Beli ${product.name} hanya Rp ${product.price.toLocaleString(
+  /* ===========================
+     VALID METADATA
+  =========================== */
+
+  const title = `${productOG.name} - Rekomendasi ${affiliator.name}`;
+  const description = `Beli ${productOG.name} hanya Rp ${productOG.price.toLocaleString(
     'id-ID'
-  )}. ${product.description} ✨ Original PE Skinpro`;
+  )}. ${productOG.description} ✨ Original PE Skinpro`;
 
   return {
     title,
@@ -157,10 +177,10 @@ export async function generateMetadata({
       url: `${baseUrl}/checkout/${params.productSlug}?ref=${refCode}`,
       images: [
         {
-          url: product.image,
+          url: productOG.image,
           width: 1200,
           height: 630,
-          alt: product.name,
+          alt: productOG.name,
         },
       ],
     },
@@ -168,7 +188,7 @@ export async function generateMetadata({
       card: 'summary_large_image',
       title,
       description,
-      images: [product.image],
+      images: [productOG.image],
     },
   };
 }
