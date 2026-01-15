@@ -452,12 +452,14 @@ export default function SettingsPage() {
         {/* Header */}
         <div className="text-center sm:text-left mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold">Pengaturan</h1>
-          <p className="text-sm sm:text-base text-muted-foreground mt-2">Kelola pengaturan umum untuk aplikasi Anda.</p>
+          <p className="text-sm sm:text-base text-muted-foreground mt-2">
+            Kelola pengaturan umum untuk aplikasi Anda.
+          </p>
         </div>
 
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {Array.from({ length: 4 }).map((_, i) => 
+            {Array.from({ length: 4 }).map((_, i) => (
               <Card key={i} className="h-20 sm:h-24 lg:h-28">
                 <CardHeader>
                   <div className="h-4 sm:h-6 lg:h-8 bg-gray-200 rounded w-1/3 animate-pulse"></div>
@@ -466,7 +468,7 @@ export default function SettingsPage() {
                   <div className="h-16 sm:h-18 lg:h-20 bg-gray-200 rounded w-2/3 animate-pulse"></div>
                 </CardContent>
               </Card>
-            )}
+            ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -732,7 +734,9 @@ export default function SettingsPage() {
                   {/* About Section */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Tentang Kami</h3>
+
                     <div className="space-y-4">
+                      {/* Judul */}
                       <div className="space-y-2">
                         <Label htmlFor="aboutTitle">Judul Tentang Kami</Label>
                         <Input
@@ -743,6 +747,8 @@ export default function SettingsPage() {
                           placeholder="Tentang PE Skinpro"
                         />
                       </div>
+
+                      {/* Deskripsi */}
                       <div className="space-y-2">
                         <Label htmlFor="aboutDescription">
                           Deskripsi Tentang Kami
@@ -756,132 +762,124 @@ export default function SettingsPage() {
                           rows={4}
                         />
                       </div>
-                  <div className="space-y-4">
-                    <Label htmlFor="aboutImage">Gambar Tentang Kami</Label>
 
-                    {/* Current Image Preview */}
-                    {landingPageSettings.aboutImage && (
-                      <div className="relative">
-                        <div className="rounded-lg overflow-hidden border border-border">
-                          <img
-                            src={landingPageSettings.aboutImage}
-                            alt="Tentang Kami"
-                            className="w-full h-64 object-cover"
-                            onError={(e) => {
-                              const target = e.currentTarget;
-                              target.style.display = "none";
-                              target.nextElementSibling?.classList.remove(
-                                "hidden"
-                              );
-                            }}
-                          />
-                          <div className="hidden bg-secondary/50 h-64 flex items-center justify-center">
-                            <div className="text-center">
-                              <Image className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
-                              <p className="text-muted-foreground">
-                                Gambar tidak dapat dimuat
-                              </p>
+                      {/* Gambar */}
+                      <div className="space-y-4">
+                        <Label>Gambar Tentang Kami</Label>
+
+                        {/* Preview Image */}
+                        {landingPageSettings.aboutImage && (
+                          <div className="relative">
+                            <div className="rounded-lg overflow-hidden border border-border">
+                              <img
+                                src={landingPageSettings.aboutImage}
+                                alt="Tentang Kami"
+                                className="w-full h-64 object-cover object-center"
+                                onError={(e) => {
+                                  const target = e.currentTarget;
+                                  target.style.display = "none";
+                                  target.nextElementSibling?.classList.remove(
+                                    "hidden"
+                                  );
+                                }}
+                              />
+                              <div className="hidden h-64 bg-secondary/50 flex items-center justify-center">
+                                <div className="text-center">
+                                  <Image className="w-12 h-12 mx-auto mb-2 text-muted-foreground" />
+                                  <p className="text-muted-foreground">
+                                    Gambar tidak dapat dimuat
+                                  </p>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          className="absolute top-2 right-2"
-                          onClick={() => {
-                            setLandingPageSettings((prev) => ({
-                              ...prev,
-                              aboutImage: "",
-                            }));
-                            toast.success("Gambar dihapus");
-                          }}
-                        >
-                          Hapus
-                        </Button>
-                      </div>
-                    )}
 
-                    {/* Upload Section */}
-                    <div className="border-2 border-dashed border-border rounded-lg p-4 sm:p-6">
-                      <div className="text-center">
-                        <Image className="w-12 h-12 sm:w-16 sm:h-16 text-muted-foreground mb-4" />
-                        <div className="space-y-3 sm:space-y-4">
-                          <p className="text-sm sm:text-base text-muted-foreground">
-                            Upload gambar baru atau masukkan URL
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <div className="relative w-full sm:w-auto">
-                          <Input
-                            id="aboutImage"
-                            name="aboutImage"
-                            value={landingPageSettings.aboutImage}
-                            onChange={handleLandingPageChange}
-                            placeholder="https://example.com/image.jpg"
-                            className="font-mono text-xs sm:text-sm h-10 sm:h-12 w-full"
-                          />
-                        </div>
-                      
-                        <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
-                          <label htmlFor="file-input" className="cursor-pointer">
-                            <Button type="button" variant="outline" disabled={isUploadingImage} className="w-full sm:w-auto" asChild>
-                              <span>{isUploadingImage ? 'Mengupload...' : 'Pilih File'}</span>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              className="absolute top-2 right-2"
+                              onClick={() => {
+                                setLandingPageSettings((prev) => ({
+                                  ...prev,
+                                  aboutImage: "",
+                                }));
+                                toast.success("Gambar dihapus");
+                              }}
+                            >
+                              Hapus
                             </Button>
-                          </label>
-                          <input
-                            id="file-input"
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageUpload}
-                            className="hidden"
-                          />
-                          {landingPageSettings.aboutImage && (
-                            <>
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                onClick={() => window.open(landingPageSettings.aboutImage, '_blank')}
-                                className="w-full sm:w-auto"
-                              >
-                                <Upload className="w-4 h-4 mr-2" />
-                                <span className="hidden sm:inline">Preview</span>
-                                <span className="sm:hidden">Lihat</span>
-                              </Button>
+                          </div>
+                        )}
+
+                        {/* Upload Section */}
+                        <div className="border-2 border-dashed border-border rounded-lg p-6">
+                          {/* ICON + TEXT (CENTER) */}
+                          <div className="flex flex-col items-center justify-center text-center min-h-[180px]">
+                            <Image className="w-14 h-14 text-muted-foreground mb-4" />
+                            <p className="text-sm text-muted-foreground">
+                              Upload gambar baru atau masukkan URL
+                            </p>
+                          </div>
+
+                          {/* INPUT & BUTTON */}
+                          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
+                            <Input
+                              id="aboutImage"
+                              name="aboutImage"
+                              value={landingPageSettings.aboutImage}
+                              onChange={handleLandingPageChange}
+                              placeholder="https://example.com/image.jpg"
+                              className="font-mono text-xs sm:text-sm h-10 sm:h-12 w-full sm:max-w-sm"
+                            />
+
+                            <label
+                              htmlFor="file-input"
+                              className="cursor-pointer"
+                            >
                               <Button
                                 type="button"
                                 variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(landingPageSettings.aboutImage);
-                                  toast.success("URL berhasil disalin ke clipboard!");
-                                }}
-                                className="w-full sm:w-auto"
+                                disabled={isUploadingImage}
+                                asChild
                               >
-                                <span className="hidden sm:inline">📋 Copy URL</span>
-                                <span className="sm:hidden">📋</span>
+                                <span>
+                                  {isUploadingImage
+                                    ? "Mengupload..."
+                                    : "Pilih File"}
+                                </span>
                               </Button>
-                            </>
+                            </label>
+
+                            <input
+                              id="file-input"
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageUpload}
+                              className="hidden"
+                            />
+                          </div>
+
+                          {/* Loading */}
+                          {isUploadingImage && (
+                            <div className="flex items-center justify-center gap-3 py-6">
+                              <div className="flex space-x-1">
+                                <div className="w-3 h-3 bg-primary rounded-full animate-bounce" />
+                                <div
+                                  className="w-3 h-3 bg-primary rounded-full animate-bounce"
+                                  style={{ animationDelay: "0.1s" }}
+                                />
+                                <div
+                                  className="w-3 h-3 bg-primary rounded-full animate-bounce"
+                                  style={{ animationDelay: "0.2s" }}
+                                />
+                              </div>
+                              <span className="text-sm text-primary">
+                                Mengupload...
+                              </span>
+                            </div>
                           )}
                         </div>
                       </div>
-                      
-                      {isUploadingImage && (
-                        <div className="flex items-center justify-center gap-3 py-6">
-                          <div className="flex space-x-1">
-                            <div className="w-3 h-3 bg-primary rounded-full animate-bounce"></div>
-                            <div className="w-3 h-3 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                            <div className="w-3 h-3 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                          </div>
-                          <div className="text-sm text-primary animate-pulse-soft">
-                            Mengupload...
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
                     </div>
                   </div>
 

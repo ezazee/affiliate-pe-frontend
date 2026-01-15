@@ -12,6 +12,7 @@
     "purge": "node scripts/purge.cjs",
     "create-indexes": "node scripts/create-indexes.cjs",
     "optimize-performance": "chmod +x scripts/optimize-performance.sh && ./scripts/optimize-performance.sh",
+    "optimize-performance-only": "chmod +x scripts/optimize-performance-only.sh && ./scripts/optimize-performance-only.sh",
     "analyze-bundle": "ANALYZE=true npm run build"
   },
   "dependencies": {
