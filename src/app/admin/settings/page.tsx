@@ -25,9 +25,13 @@ import {
   ShoppingBag,
   MessageCircle,
   Globe,
+  Bell,
+  Send,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function SettingsPage() {
+  const { user } = useAuth();
   const [address, setAddress] = useState("");
   const [adminWhatsApp, setAdminWhatsApp] = useState("");
   const [minimumWithdrawal, setMinimumWithdrawal] = useState(50000);
@@ -37,6 +41,16 @@ export default function SettingsPage() {
     long_rate: 1000,
     long_flat_rate: 50000,
   });
+
+  // Notification Settings
+  const [notificationTemplates, setNotificationTemplates] = useState({
+    NEW_ORDER: { title: 'Pesanan Baru Masuk! 🎉', body: 'Pesanan #{orderNumber} senilai {amount} telah masuk melalui link Anda.' },
+    ORDER_PAID: { title: 'Komisi Diterima! 💰', body: 'Pesanan #{orderNumber} telah dibayar. Anda menerima komisi {commission}!' },
+    AFFILIATOR_APPROVED: { title: 'Akun Disetujui! ✅', body: 'Akun affiliate Anda telah disetujui. Mulai bagikan link sekarang!' },
+    WITHDRAWAL_APPROVED: { title: 'Penarikan Disetujui 💸', body: 'Penarikan dana sebesar {amount} telah disetujui dan diproses.' },
+  });
+  const [isSavingNotifications, setIsSavingNotifications] = useState(false);
+  const [isSendingTest, setIsSendingTest] = useState(false);
 
   // Landing Page Settings
   const [landingPageSettings, setLandingPageSettings] = useState({
@@ -120,6 +134,19 @@ export default function SettingsPage() {
           }
         } catch (error) {
           console.error("Error fetching landing page settings:", error);
+        }
+
+        // Notification Templates
+        try {
+          const notifyResponse = await fetch("/api/admin/notification-templates");
+          if (notifyResponse.ok) {
+            const notifyData = await notifyResponse.json();
+            if (Object.keys(notifyData).length > 0) {
+                setNotificationTemplates(prev => ({ ...prev, ...notifyData }));
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching notification templates:", error);
         }
       } catch (error) {
         console.error("Settings fetch error:", error);
@@ -446,6 +473,74 @@ export default function SettingsPage() {
     }
   };
 
+  const handleNotificationChange = (type: string, field: 'title' | 'body', value: string) => {
+    setNotificationTemplates(prev => ({
+        ...prev,
+        [type as keyof typeof prev]: {
+            ...prev[type as keyof typeof prev],
+            [field]: value
+        }
+    }));
+  };
+
+  const handleSaveNotifications = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingNotifications(true);
+    try {
+        const response = await fetch("/api/admin/notification-templates", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(notificationTemplates),
+        });
+        if (response.ok) {
+            toast.success("Template notifikasi berhasil diperbarui.");
+        } else {
+            toast.error("Gagal memperbarui template.");
+        }
+    } catch (error) {
+        toast.error("Terjadi kesalahan jaringan.");
+    } finally {
+        setIsSavingNotifications(false);
+    }
+  };
+
+  const handleTestNotification = async (type: string) => {
+      if (!user?.id) {
+          toast.error("Anda harus login untuk test.");
+          return;
+      }
+      setIsSendingTest(true);
+      try {
+          // Dummy data for test
+          const dummyData = {
+              orderNumber: 'ORDER-TEST-123',
+              amount: 'Rp 150.000',
+              commission: 'Rp 15.000',
+              affiliate: 'Test Affiliate'
+          };
+          
+          const response = await fetch("/api/admin/test-notification", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                  userId: user.id,
+                  type,
+                  data: dummyData
+              }),
+          });
+          
+          if (response.ok) {
+              toast.success(`Notifikasi ${type} dikirim ke perangkat Anda!`);
+          } else {
+              toast.error("Gagal mengirim notifikasi test.");
+          }
+      } catch (error) {
+          toast.error("Gagal mengirim notifikasi.");
+      } finally {
+          setIsSendingTest(false);
+      }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-4 px-3 sm:py-6 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -685,6 +780,138 @@ export default function SettingsPage() {
                   </div>
                   <Button type="submit" disabled={isSavingRates}>
                     {isSavingRates ? "Menyimpan..." : "Simpan Biaya Pengiriman"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* Notification Settings */}
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="w-5 h-5" />
+                  Pengaturan Push Notification
+                </CardTitle>
+                <CardDescription>
+                  Atur template pesan notifikasi yang dikirim ke aplikasi PWA Affiliator.
+                  Gunakan <code>{`{variable}`}</code> untuk data dinamis.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSaveNotifications} className="space-y-8">
+                   <div className="grid gap-6 md:grid-cols-2">
+                      {/* NEW_ORDER */}
+                      <div className="space-y-3 p-4 border rounded-lg">
+                        <div className="flex justify-between items-center">
+                            <h4 className="font-semibold text-sm">Pesanan Baru (NEW_ORDER)</h4>
+                            <Button type="button" variant="outline" size="sm" onClick={() => handleTestNotification('NEW_ORDER')} disabled={isSendingTest}>
+                                <Send className="w-3 h-3 mr-2" /> Test
+                            </Button>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Judul</Label>
+                            <Input 
+                                value={notificationTemplates.NEW_ORDER.title}
+                                onChange={(e) => handleNotificationChange('NEW_ORDER', 'title', e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Pesan</Label>
+                            <Textarea 
+                                value={notificationTemplates.NEW_ORDER.body}
+                                onChange={(e) => handleNotificationChange('NEW_ORDER', 'body', e.target.value)}
+                                rows={2}
+                            />
+                            <p className="text-xs text-muted-foreground">Vars: {`{orderNumber}, {amount}`} </p>
+                        </div>
+                      </div>
+
+                      {/* ORDER_PAID */}
+                      <div className="space-y-3 p-4 border rounded-lg">
+                        <div className="flex justify-between items-center">
+                            <h4 className="font-semibold text-sm">Komisi Cair (ORDER_PAID)</h4>
+                            <Button type="button" variant="outline" size="sm" onClick={() => handleTestNotification('ORDER_PAID')} disabled={isSendingTest}>
+                                <Send className="w-3 h-3 mr-2" /> Test
+                            </Button>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Judul</Label>
+                            <Input 
+                                value={notificationTemplates.ORDER_PAID.title}
+                                onChange={(e) => handleNotificationChange('ORDER_PAID', 'title', e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Pesan</Label>
+                            <Textarea 
+                                value={notificationTemplates.ORDER_PAID.body}
+                                onChange={(e) => handleNotificationChange('ORDER_PAID', 'body', e.target.value)}
+                                rows={2}
+                            />
+                            <p className="text-xs text-muted-foreground">Vars: {`{orderNumber}, {commission}`} </p>
+                        </div>
+                      </div>
+
+                      {/* AFFILIATOR_APPROVED */}
+                      <div className="space-y-3 p-4 border rounded-lg">
+                        <div className="flex justify-between items-center">
+                            <h4 className="font-semibold text-sm">Akun Disetujui (APPROVED)</h4>
+                            <Button type="button" variant="outline" size="sm" onClick={() => handleTestNotification('AFFILIATOR_APPROVED')} disabled={isSendingTest}>
+                                <Send className="w-3 h-3 mr-2" /> Test
+                            </Button>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Judul</Label>
+                            <Input 
+                                value={notificationTemplates.AFFILIATOR_APPROVED.title}
+                                onChange={(e) => handleNotificationChange('AFFILIATOR_APPROVED', 'title', e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Pesan</Label>
+                            <Textarea 
+                                value={notificationTemplates.AFFILIATOR_APPROVED.body}
+                                onChange={(e) => handleNotificationChange('AFFILIATOR_APPROVED', 'body', e.target.value)}
+                                rows={2}
+                            />
+                        </div>
+                      </div>
+
+                      {/* WITHDRAWAL_APPROVED */}
+                      <div className="space-y-3 p-4 border rounded-lg">
+                        <div className="flex justify-between items-center">
+                            <h4 className="font-semibold text-sm">Penarikan Disetujui</h4>
+                            <Button type="button" variant="outline" size="sm" onClick={() => handleTestNotification('WITHDRAWAL_APPROVED')} disabled={isSendingTest}>
+                                <Send className="w-3 h-3 mr-2" /> Test
+                            </Button>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Judul</Label>
+                            <Input 
+                                value={notificationTemplates.WITHDRAWAL_APPROVED.title}
+                                onChange={(e) => handleNotificationChange('WITHDRAWAL_APPROVED', 'title', e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Pesan</Label>
+                            <Textarea 
+                                value={notificationTemplates.WITHDRAWAL_APPROVED.body}
+                                onChange={(e) => handleNotificationChange('WITHDRAWAL_APPROVED', 'body', e.target.value)}
+                                rows={2}
+                            />
+                            <p className="text-xs text-muted-foreground">Vars: {`{amount}`} </p>
+                        </div>
+                      </div>
+                   </div>
+
+                  <Button
+                    type="submit"
+                    disabled={isSavingNotifications}
+                    className="w-full md:w-auto"
+                  >
+                    {isSavingNotifications
+                      ? "Menyimpan..."
+                      : "Simpan Template Notifikasi"}
                   </Button>
                 </form>
               </CardContent>

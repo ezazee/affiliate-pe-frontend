@@ -42,7 +42,8 @@ import {
 } from '@/components/ui/table';
 import { AffiliateLink, Commission, Order, OrderStatus, CommissionStatus } from '@/types';
 import { cn } from '@/lib/utils';
-import { Wallet } from 'lucide-react';
+import { Wallet, Bell } from 'lucide-react';
+import { usePushNotifications } from '@/hooks/use-push-notifications';
 
 interface AffiliatorStats {
   totalRevenue: number;
@@ -52,6 +53,7 @@ interface AffiliatorStats {
 
 export default function AffiliatorDashboard() {
   const { user } = useAuth();
+  const { isSubscribed, subscribeToNotifications, permission } = usePushNotifications();
   const [stats, setStats] = useState<AffiliatorStats | null>(null);
   const [affiliateLinks, setAffiliateLinks] = useState<AffiliateLink[]>([]);
   const [recentCommissions, setRecentCommissions] = useState<Commission[]>([]);
@@ -239,13 +241,21 @@ export default function AffiliatorDashboard() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-display font-bold text-foreground mb-2">
-          Selamat datang kembali, {user?.name?.split(" ")[0]}! 👋
-        </h1>
-        <p className="text-muted-foreground">
-          Berikut adalah ringkasan performa afiliasi Anda
-        </p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-display font-bold text-foreground mb-2">
+            Selamat datang kembali, {user?.name?.split(" ")[0]}! 👋
+          </h1>
+          <p className="text-muted-foreground">
+            Berikut adalah ringkasan performa afiliasi Anda
+          </p>
+        </div>
+        {!isSubscribed && permission !== 'denied' && (
+            <Button onClick={subscribeToNotifications} className="gap-2">
+                <Bell className="w-4 h-4" />
+                Aktifkan Notifikasi
+            </Button>
+        )}
       </div>
 
       {/* Stats Grid */}
