@@ -89,7 +89,7 @@ const products = [
 const users = [
   {
     name: "Admin User",
-    email: "admin@peskinpro.id",
+    email: "adm.peskinproid@gmail.com",
     password: "adminpeskinpro",
     role: "admin",
     status: "approved",

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Edit, Trash2, Package, Search, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit, Trash2, Package, Search, Image as ImageIcon, Upload, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +34,7 @@ export default function AdminProducts() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -115,11 +116,44 @@ export default function AdminProducts() {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
-    } else {
+    const file = e.target.files?.[0];
+    if (!file) {
       setSelectedFile(null);
+      setImagePreview(editingProduct?.imageUrl || null);
+      return;
     }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('File harus berupa gambar (JPG, PNG, WebP, GIF)');
+      e.target.value = '';
+      return;
+    }
+
+    // Validate file size (2MB max)
+    const maxSize = 2 * 1024 * 1024; // 2MB
+    if (file.size > maxSize) {
+      toast.error(`Ukuran file terlalu besar: ${(file.size / 1024 / 1024).toFixed(2)}MB. Maksimal: 2MB`);
+      e.target.value = '';
+      return;
+    }
+
+    // Show file size info
+    const fileSizeKB = Math.round(file.size / 1024);
+    if (fileSizeKB > 500) {
+      toast.info(`Ukuran file: ${fileSizeKB}KB. Untuk loading optimal, disarankan < 500KB.`);
+    } else {
+      toast.success(`Ukuran file optimal: ${fileSizeKB}KB`);
+    }
+
+    setSelectedFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -129,19 +163,27 @@ export default function AdminProducts() {
 
     // If a new file is selected, upload it
     if (selectedFile) {
+      setIsUploading(true);
       try {
-        const uploadResponse = await fetch(`/api/upload?filename=${selectedFile.name}`, {
+        const formDataUpload = new FormData();
+        formDataUpload.append('file', selectedFile);
+
+        const uploadResponse = await fetch('/api/upload', {
           method: 'POST',
-          body: selectedFile,
-          headers: {
-            'content-type': selectedFile.type,
-          },
+          body: formDataUpload,
         });
 
         if (uploadResponse.ok) {
           const blobData = await uploadResponse.json();
           uploadedImageUrl = blobData.url;
-          toast.success('Image uploaded successfully!');
+          
+          if (blobData.warning) {
+            setTimeout(() => {
+              toast.warning(blobData.warning, { duration: 6000 });
+            }, 1000);
+          }
+          
+          toast.success(`Gambar "${selectedFile.name}" berhasil diupload ke cloud storage (${blobData.sizeKB}KB)`);
         } else {
           const errorData = await uploadResponse.json();
           toast.error(errorData.error || 'Failed to upload image.');
@@ -149,8 +191,10 @@ export default function AdminProducts() {
         }
       } catch (uploadError) {
         console.error('Image upload failed:', uploadError);
-        toast.error('An error occurred during image upload.');
+        toast.error('Terjadi kesalahan saat mengupload gambar. Silakan coba lagi.');
         return; // Stop submission if image upload fails
+      } finally {
+        setIsUploading(false);
       }
     }
 
@@ -335,20 +379,78 @@ export default function AdminProducts() {
                   />
                 </div>
                 {/* Image Upload Field */}
-                <div className="space-y-2">
+                <div className="space-y-4">
                   <Label htmlFor="image">Gambar Produk</Label>
-                  <Input
-                    id="image"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                  />
-                  {imagePreview && (
-                    <div className="mt-2 relative w-32 h-32 rounded-lg border border-border overflow-hidden">
-                      <img src={imagePreview} alt="Pratinjau Gambar" className="w-full h-full object-contain" />
-                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-xs">
-                        <ImageIcon className="w-5 h-5 mr-1" /> Pratinjau
+                  
+                  {/* Upload Area */}
+                  <div className="border-2 border-dashed border-border rounded-lg p-6">
+                    {imagePreview ? (
+                      <div className="space-y-4">
+                        <div className="relative w-full h-48 rounded-lg overflow-hidden border border-border">
+                          <img 
+                            src={imagePreview} 
+                            alt="Pratinjau Gambar" 
+                            className="w-full h-full object-contain bg-secondary/20"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                            }}
+                          />
+                          <div className="hidden w-full h-48 bg-secondary/50 flex items-center justify-center">
+                            <div className="text-center">
+                              <ImageIcon className="w-12 h-12 mx-auto mb-2 text-muted-foreground" />
+                              <p className="text-muted-foreground">Gambar tidak dapat dimuat</p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">
+                            {selectedFile ? `${selectedFile.name} (${Math.round(selectedFile.size / 1024)}KB)` : 'Gambar saat ini'}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedFile(null);
+                              setImagePreview(editingProduct?.imageUrl || null);
+                            }}
+                          >
+                            Hapus
+                          </Button>
+                        </div>
                       </div>
+                    ) : (
+                      <div className="text-center py-6">
+                        <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Klik untuk upload gambar produk
+                        </p>
+                        <p className="text-xs text-muted-foreground mb-4">
+                          Format: JPG, PNG, WebP, GIF (Maks: 2MB, Recommended: &lt;500KB)
+                        </p>
+                      </div>
+                    )}
+                    
+                    <Input
+                      id="image"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="cursor-pointer"
+                      disabled={isUploading}
+                    />
+                  </div>
+                  
+                  {isUploading && (
+                    <div className="flex items-center justify-center gap-3 py-4">
+                      <div className="flex space-x-1">
+                        <div className="w-3 h-3 bg-primary rounded-full animate-bounce" />
+                        <div className="w-3 h-3 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                        <div className="w-3 h-3 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                      </div>
+                      <span className="text-sm text-primary">Mengupload...</span>
                     </div>
                   )}
                 </div>
@@ -383,11 +485,23 @@ export default function AdminProducts() {
                   </div>
                 </div>
                 <div className="flex justify-end gap-3 pt-4">
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsDialogOpen(false)}
+                    disabled={isUploading}
+                  >
                     Batal
                   </Button>
-                  <Button type="submit">
-                    {editingProduct ? 'Perbarui' : 'Buat'} Produk
+                  <Button type="submit" disabled={isUploading}>
+                    {isUploading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                        Mengupload...
+                      </>
+                    ) : (
+                      <>{editingProduct ? 'Perbarui' : 'Buat'} Produk</>
+                    )}
                   </Button>
                 </div>
               </form>
