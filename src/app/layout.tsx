@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "@/index.css";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -12,6 +12,14 @@ const inter = Inter({
   weight: ['400', '500', '600', '700'], // Preload only needed weights
   fallback: ['system-ui', 'sans-serif'] // Fallback fonts if Google Fonts fails
 });
+
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false, // Often used for "app-like" feel, though has accessibility implications. Maybe just width/initialScale is enough. I'll stick to safe defaults.
+};
 
 export const metadata: Metadata = {
   title: "PE Skinpro Affiliate - Dapatkan Komisi 15% dari Produk Skincare Terbaik",
