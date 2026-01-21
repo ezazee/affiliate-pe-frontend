@@ -1,9 +1,13 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bell, Send } from 'lucide-react';
+import { Bell, Send, Settings } from 'lucide-react';
 import { PushNotificationSender } from '@/components/admin/push-notification-sender';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+// Import the templates management component we'll create
+import NotificationTemplatesManager from '@/components/admin/notification-templates-manager';
 
 export default function AdminNotificationsPage() {
   return (
@@ -16,12 +20,31 @@ export default function AdminNotificationsPage() {
             Notifikasi Push
           </h1>
           <p className="text-muted-foreground">
-            Kirim notifikasi ke semua afiliasi atau pengguna tertentu
+            Kelola pengiriman dan template notifikasi
           </p>
         </div>
       </div>
 
-      <PushNotificationSender />
+      <Tabs defaultValue="send" className="w-full">
+        <TabsList>
+          <TabsTrigger value="send" className="flex items-center gap-2">
+            <Send className="w-4 h-4" />
+            Kirim Notifikasi
+          </TabsTrigger>
+          <TabsTrigger value="templates" className="flex items-center gap-2">
+            <Settings className="w-4 h-4" />
+            Template Notifikasi
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="send" className="space-y-6">
+          <PushNotificationSender />
+        </TabsContent>
+
+        <TabsContent value="templates" className="space-y-6">
+          <NotificationTemplatesManager />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
