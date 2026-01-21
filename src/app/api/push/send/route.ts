@@ -103,6 +103,11 @@ export async function POST(request: NextRequest) {
     ).length;
     
     const failed = results.length - successful;
+    
+    // Collect error details
+    const errorDetails = results
+      .map(r => r.status === 'fulfilled' ? r.value : { success: false, error: 'Unknown error' })
+      .filter(r => !r.success);
 
     return NextResponse.json({
       success: true,
@@ -110,6 +115,7 @@ export async function POST(request: NextRequest) {
       sent: successful,
       failed,
       total: results.length,
+      errorDetails: errorDetails.length > 0 ? errorDetails : undefined,
     });
 
   } catch (error) {
