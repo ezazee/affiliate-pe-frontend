@@ -10,6 +10,15 @@ export async function GET() {
     // Get all users and their subscription status
     const allUsers = await usersCollection.find({}).toArray();
     
+    console.log('📊 Debug - All users:', allUsers.map(u => ({
+      email: u.email,
+      hasPushSubscription: !!u.pushSubscription,
+      notificationsEnabled: u.notificationsEnabled,
+      subscriptionEndpoint: u.pushSubscription?.endpoint?.substring(0, 50) + '...',
+      subscriptionKeys: u.pushSubscription?.keys ? Object.keys(u.pushSubscription.keys) : [],
+      lastUpdated: u.updatedAt
+    })));
+    
     const debugInfo = {
       totalUsers: allUsers.length,
       usersWithPushSubscription: allUsers.filter(u => u.pushSubscription).length,

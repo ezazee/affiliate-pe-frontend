@@ -33,18 +33,22 @@ export async function POST(request: NextRequest) {
     // Get user from request
     const userInfo = await getUserFromRequest(request);
     if (!userInfo) {
+      console.error('❌ No user found in subscription request');
+      console.error('📝 Headers:', Object.fromEntries(request.headers.entries()));
       return NextResponse.json(
-        { error: 'Authentication required' },
+        { error: 'Authentication required', debug: 'No user found in request' },
         { status: 401 }
       );
     }
+
+    console.log('👤 User found:', userInfo);
 
     const client = await connectToDatabase();
     const db = client.db();
     const usersCollection = db.collection('users');
 
     // Update user with push subscription
-    await usersCollection.updateOne(
+    const result = await usersCollection.updateOne(
       { email: userInfo.email }, // Use email as identifier
       {
         $set: {
@@ -58,6 +62,14 @@ export async function POST(request: NextRequest) {
       },
       { upsert: true }
     );
+
+    console.log('💾 Subscription saved to database:', {
+      email: userInfo.email,
+      matchedCount: result.matchedCount,
+      modifiedCount: result.modifiedCount,
+      upsertedCount: result.upsertedCount,
+      subscriptionEndpoint: subscription.endpoint?.substring(0, 50) + '...'
+    });
 
     // Send a test notification to confirm subscription
     try {
