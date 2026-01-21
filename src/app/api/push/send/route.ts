@@ -49,10 +49,23 @@ export async function POST(request: NextRequest) {
     
     if (users.length === 0) {
       await client.close();
+      // Debug info - check all users
+      const allUsers = await db.collection('users').find({}).toArray();
+      console.log('All users:', allUsers.map(u => ({ 
+        email: u.email, 
+        hasPushSubscription: !!u.pushSubscription, 
+        notificationsEnabled: u.notificationsEnabled 
+      })));
+      
       return NextResponse.json({
         success: true,
         message: 'No users with push subscriptions found',
         sent: 0,
+        debug: {
+          totalUsers: allUsers.length,
+          usersWithPush: allUsers.filter(u => u.pushSubscription).length,
+          usersWithNotificationsEnabled: allUsers.filter(u => u.notificationsEnabled).length,
+        }
       });
     }
 
