@@ -18,8 +18,8 @@ export async function getUserFromRequest(request: NextRequest): Promise<{ email:
     } else {
       // Fallback to simple auth header with user email
       const userEmail = request.headers.get('x-user-email');
-      if (userEmail) {
-        return { email: userEmail, userId: userEmail };
+      if (userEmail && userEmail.trim()) {
+        return { email: userEmail.trim(), userId: userEmail.trim() };
       }
       return null;
     }
