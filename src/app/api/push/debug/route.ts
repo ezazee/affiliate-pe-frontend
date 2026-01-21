@@ -1,18 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
-
-const mongodbUri = process.env.MONGODB_URI!;
-
-// MongoDB connection
-async function connectToDatabase() {
-  const client = new MongoClient(mongodbUri);
-  await client.connect();
-  return client;
-}
+import clientPromise from '@/lib/mongodb';
 
 export async function GET() {
   try {
-    const client = await connectToDatabase();
+    const client = await clientPromise;
     const db = client.db();
     const usersCollection = db.collection('users');
 
@@ -32,8 +23,6 @@ export async function GET() {
         lastUpdated: u.updatedAt
       }))
     };
-
-    await client.close();
 
     return NextResponse.json({
       success: true,
