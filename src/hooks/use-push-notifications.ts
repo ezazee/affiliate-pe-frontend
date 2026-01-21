@@ -98,21 +98,19 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
     setError(null);
 
     try {
-      // Request permission first
-      if (permission === 'default') {
-        const result = await requestPermission();
-        if (result !== 'granted') {
-          setError('Notification permission denied');
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      if (permission === 'denied') {
-        setError('Notification permission denied');
+      console.log('🔔 Current permission status:', permission);
+      
+      // Always check and request permission
+      const currentPermission = await Notification.requestPermission();
+      console.log('📝 Permission request result:', currentPermission);
+      
+      if (currentPermission !== 'granted') {
+        setError(`Notification permission ${currentPermission}. Please allow notifications in your browser settings.`);
         setIsLoading(false);
         return;
       }
+      
+      console.log('✅ Permission granted!');
 
       console.log('🔄 Starting push subscription process...');
       

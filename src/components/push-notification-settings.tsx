@@ -163,15 +163,27 @@ export const PushNotificationSettings = ({ userId, className }: PushNotification
         <Button
           variant="outline"
           size="sm"
-          onClick={() => {
-            if (permission === 'default') {
-              requestPermission();
+          onClick={async () => {
+            const result = await requestPermission();
+            if (result === 'granted') {
+              toast({
+                title: 'Permission Granted',
+                description: 'You can now enable push notifications',
+              });
+            } else {
+              toast({
+                title: 'Permission Denied',
+                description: 'Please enable notifications in browser settings',
+                variant: 'destructive'
+              });
             }
           }}
-          disabled={permission !== 'default' || isLoading}
+          disabled={isLoading}
           className="w-full"
         >
-          {permission === 'default' ? 'Enable Browser Permission' : 'Permission Already Set'}
+          {permission === 'granted' ? '✅ Permission Granted' : 
+           permission === 'denied' ? '❌ Permission Denied' : 
+           '🔔 Request Browser Permission'}
         </Button>
       </CardContent>
     </Card>
