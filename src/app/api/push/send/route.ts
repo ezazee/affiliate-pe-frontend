@@ -120,7 +120,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Send notification error:', error);
     return NextResponse.json(
-      { error: 'Failed to send notification' },
+      { 
+        error: 'Failed to send notification',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      },
       { status: 500 }
     );
   }
