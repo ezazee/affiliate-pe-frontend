@@ -19,7 +19,7 @@
       "purpose": "any maskable"
     },
     {
-      "src": "/favicon/favicon-192x192.png",
+      "src": "/favicon/android-chrome-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
@@ -59,7 +59,7 @@
       "url": "/affiliator",
       "icons": [
         {
-          "src": "/favicon/icon-192x192.png",
+          "src": "/favicon/android-chrome-192x192.png",
           "sizes": "192x192"
         }
       ]
@@ -71,7 +71,7 @@
       "url": "/affiliator/commissions",
       "icons": [
         {
-          "src": "/favicon/icon-192x192.png",
+          "src": "/favicon/android-chrome-192x192.png",
           "sizes": "192x192"
         }
       ]
