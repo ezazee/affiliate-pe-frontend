@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import webpush from 'web-push';
-import { MongoClient } from 'mongodb';
+import clientPromise from '@/lib/mongodb';
 
-const mongodbUri = process.env.MONGODB_URI!;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY!;
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
 
@@ -15,8 +14,7 @@ webpush.setVapidDetails(
 
 // MongoDB connection
 async function connectToDatabase() {
-  const client = new MongoClient(mongodbUri);
-  await client.connect();
+  const client = await clientPromise;
   return client;
 }
 
@@ -48,7 +46,6 @@ export async function POST(request: NextRequest) {
     const users = await usersCollection.find(query).toArray();
     
     if (users.length === 0) {
-      await client.close();
       // Debug info - check all users
       const allUsers = await db.collection('users').find({}).toArray();
       console.log('All users:', allUsers.map(u => ({ 
@@ -106,8 +103,6 @@ export async function POST(request: NextRequest) {
     ).length;
     
     const failed = results.length - successful;
-
-    await client.close();
 
     return NextResponse.json({
       success: true,

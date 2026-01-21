@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import webpush from 'web-push';
-import { MongoClient, ObjectId } from 'mongodb';
+import clientPromise from '@/lib/mongodb';
 import { getUserFromRequest } from '@/lib/auth-utils';
 
-const mongodbUri = process.env.MONGODB_URI!;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY!;
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
 
@@ -16,8 +15,7 @@ webpush.setVapidDetails(
 
 // MongoDB connection
 async function connectToDatabase() {
-  const client = new MongoClient(mongodbUri);
-  await client.connect();
+  const client = await clientPromise;
   return client;
 }
 
@@ -60,8 +58,6 @@ export async function POST(request: NextRequest) {
       },
       { upsert: true }
     );
-
-    await client.close();
 
     // Send a test notification to confirm subscription
     try {
@@ -130,8 +126,6 @@ export async function DELETE(request: NextRequest) {
         },
       }
     );
-
-    await client.close();
 
     return NextResponse.json({
       success: true,
