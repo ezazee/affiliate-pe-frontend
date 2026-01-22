@@ -103,7 +103,7 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
     }
   }, [isSupported]);
 
-  // Subscribe to push notifications - SIMPLE & FAST
+  // Subscribe to push notifications - OPTIMIZED & FAST
   const subscribe = useCallback(async (retryCount = 0) => {
     if (!isSupported) {
       setError('Push notifications not supported');
@@ -113,56 +113,53 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
     setIsLoading(true);
     setError(null);
 
+    // Add timeout to prevent hanging
+    const timeout = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Request timeout')), 10000)
+    );
+
     try {
-      // Simple permission check
-      const currentPermission = Notification.permission === 'granted' ? 'granted' : 
-                               await Notification.requestPermission();
+      // Fast permission check with timeout
+      const permissionPromise = Notification.permission === 'granted' ? 
+        Promise.resolve('granted') : 
+        Notification.requestPermission();
+      
+      const currentPermission = await Promise.race([permissionPromise, timeout]) as NotificationPermission;
       
       if (currentPermission !== 'granted') {
         setError('Permission denied. Please allow notifications.');
-        setIsLoading(false);
         return;
       }
 
-      // Get service worker
-      const registration = await navigator.serviceWorker.ready;
+      // Get service worker with timeout
+      const registrationPromise = navigator.serviceWorker.ready;
+      const registration = await Promise.race([registrationPromise, timeout]) as ServiceWorkerRegistration;
       
       // Check existing subscription
       const existingSubscription = await registration.pushManager.getSubscription();
       
       if (existingSubscription) {
-        // Update existing
+        // Just set state for existing subscription - no API call needed
         const subscriptionData = existingSubscription.toJSON() as PushSubscription;
-        const response = await fetch('/api/push/subscribe', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-user-email': user?.email || '',
-          },
-          body: JSON.stringify(subscriptionData),
-        });
-
-        if (response.ok) {
-          setSubscription(subscriptionData);
-          setIsSubscribed(true);
-          setIsLoading(false);
-          return;
-        }
+        setSubscription(subscriptionData);
+        setIsSubscribed(true);
+        return;
       }
       
-      // Create new subscription
+      // Create new subscription with timeout
       const vapidKey = 'BEDiXZ34k42Cp1Vd_AfbmpcUAnq5ZEdj8x-DbNilC6A6Khldz9LlLQFklsbVpXrWslG6qRrIEsEnLy-vlUtKi-w';
       const applicationServerKey = urlB64ToUint8Array(vapidKey);
       
-      const pushSubscription = await registration.pushManager.subscribe({
+      const subscribePromise = registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: applicationServerKey.buffer as ArrayBuffer,
       });
       
+      const pushSubscription = await Promise.race([subscribePromise, timeout]) as any;
       const subscriptionData = pushSubscription.toJSON() as PushSubscription;
       
-      // Save to server
-      const response = await fetch('/api/push/subscribe', {
+      // Save to server with timeout
+      const savePromise = fetch('/api/push/subscribe', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -171,8 +168,11 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
         body: JSON.stringify(subscriptionData),
       });
 
+      const response = await Promise.race([savePromise, timeout]) as Response;
+
       if (!response.ok) {
-        throw new Error('Server error');
+        // Still set local state even if server fails for better UX
+        console.warn('Server save failed, but subscription active locally');
       }
 
       setSubscription(subscriptionData);
@@ -181,7 +181,11 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Subscription failed';
-      setError(errorMessage);
+      if (errorMessage.includes('timeout')) {
+        setError('Connection timeout. Please try again.');
+      } else {
+        setError(errorMessage);
+      }
       setIsSubscribed(false);
     } finally {
       setIsLoading(false);

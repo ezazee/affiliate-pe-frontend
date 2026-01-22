@@ -57,17 +57,18 @@ export const PushNotificationSettings = ({ userId, className }: PushNotification
         });
       }
     } else {
-      // Subscribe might take time - let the hook handle loading state
+      // Fast feedback - update UI immediately
+      setIsEnabled(true);
+      
       try {
         await subscribe();
-        if (!error) {
-          toast({
-            title: 'Notifications Enabled',
-            description: 'You will now receive push notifications.',
-          });
-          setIsEnabled(true);
-        }
+        toast({
+          title: 'Notifications Enabled',
+          description: 'You will now receive push notifications.',
+        });
       } catch (err) {
+        // Revert UI on error
+        setIsEnabled(false);
         // Error is already handled by the hook
         console.error('Toggle subscription error:', err);
       }

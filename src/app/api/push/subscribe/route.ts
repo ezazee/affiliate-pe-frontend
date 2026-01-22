@@ -72,21 +72,7 @@ export async function POST(request: NextRequest) {
       subscriptionEndpoint: subscription.endpoint?.substring(0, 50) + '...'
     });
 
-    // Send a test notification to confirm subscription
-    try {
-      await webpush.sendNotification(
-        subscription,
-        JSON.stringify({
-          title: 'Notifications Enabled!',
-          body: 'You\'ll now receive updates from PE Skinpro Affiliate.',
-          url: '/',
-          icon: '/favicon/android-chrome-192x192.png',
-        })
-      );
-    } catch (testError) {
-      console.error('Test notification failed:', testError);
-      // Don't fail the subscription if test notification fails
-    }
+    // Skip test notification for faster response
 
     return NextResponse.json({
       success: true,
