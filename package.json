@@ -13,7 +13,14 @@
     "create-indexes": "node scripts/create-indexes.cjs",
     "optimize-performance": "chmod +x scripts/optimize-performance.sh && ./scripts/optimize-performance.sh",
     "optimize-performance-only": "chmod +x scripts/optimize-performance-only.sh && ./scripts/optimize-performance-only.sh",
-    "analyze-bundle": "ANALYZE=true npm run build"
+    "analyze-bundle": "ANALYZE=true npm run build",
+    "docker:dev": "docker-compose up --build",
+    "docker:dev:detached": "docker-compose up --build -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:prod": "docker-compose -f docker-compose.prod.yml up --build",
+    "docker:build": "docker build -t affiliate-growth-hub .",
+    "docker:run": "docker run -p 3000:3000 affiliate-growth-hub"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",

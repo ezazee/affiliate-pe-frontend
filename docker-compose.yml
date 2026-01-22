@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      target: development
+    container_name: affiliate-peskinpro-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - GEOAPIFY_API_KEY=fb930a896e9941d881cf6797c2530380
+      - MAPBOX_ACCESS_TOKEN=pk.eyJ1IjoibXJ6c2FhIiwiYSI6ImNtaW1vM2ZpZTFvNW8zZG9jcmtwaXN0N2IifQ.Fyv7u5HxDjH6SInvE9gHqw
+      - NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=pk.eyJ1IjoibXJ6c2FhIiwiYSI6ImNtaW1vM2ZpZTFvNW8zZG9jcmtwaXN0N2IifQ.Fyv7u5HxDjH6SInvE9gHqw
+      - MONGODB_URI=mongodb+srv://affiliate_peskin:bCYIKdcQjTddlSz6@cluster0.iayxw9v.mongodb.net/?appName=Cluster0
+      - NEXTAUTH_URL=http://localhost:3000
+      - BLOB_READ_WRITE_TOKEN=vercel_blob_rw_Ca5yF9XS9E2WJU3x_DguYzqKp3m8duJjHGPDILrH6jHBlKz
+      - NEXT_PUBLIC_VAPID_PUBLIC_KEY=BILYQ98tlwWNaQr4pMx3D42k9gQ8raElNIhXU9OCTElnegaZF_sroUPocViXF2poTp6e3tktTMb5UgJdNbOm2MQ
+      - VAPID_PRIVATE_KEY=XB7EyQM7fuKlSUl2xaOnIvTUq2LfiEa_8eMLv-7Qu4g
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    restart: unless-stopped
+
+  # Commented out since using MongoDB Atlas
+  # mongo:
+  #   image: mongo:7.0
+  #   container_name: affiliate-mongo
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - mongo_data:/data/db
+  #     - ./scripts:/docker-entrypoint-initdb.d
+  #   environment:
+  #     - MONGO_INITDB_ROOT_USERNAME=admin
+  #     - MONGO_INITDB_ROOT_PASSWORD=password
+  #     - MONGO_INITDB_DATABASE=affiliate-growth-hub
+  #   restart: unless-stopped
+  #   networks:
+  #     - affiliate-network
+
+
+
+  # Production service (commented out, uncomment for production)
+  # app-prod:
+  #   build:
+  #     context: .
+  #     target: runner
+  #   container_name: affiliate-growth-hub-prod
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - NODE_ENV=production
+  #     - MONGODB_URI=mongodb://mongo:27017/affiliate-growth-hub
+  #     - NEXTAUTH_URL=https://yourdomain.com
+  #     - NEXTAUTH_SECRET=your-production-secret
+  #   depends_on:
+  #     - mongo
+  #     - redis
+  #   restart: unless-stopped
+  #   networks:
+  #     - affiliate-network
+
+
+
