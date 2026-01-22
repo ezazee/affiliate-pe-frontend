@@ -66,7 +66,7 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
   useEffect(() => {
     if (!isSupported) return;
 
-      const checkSubscription = async () => {
+    const checkSubscription = async () => {
       try {
         console.log('🔍 Checking current subscription status...');
         console.log('📱 Browser info:', navigator.userAgent);
@@ -89,12 +89,12 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
         }
       } catch (err) {
         console.error('❌ Error checking subscription:', err);
-        setError('Failed to check subscription status');
+        // Don't set error on initial check to avoid showing errors on page load
       }
     };
 
     checkSubscription();
-  }, [isSupported]);
+  }, [isSupported]); // Keep only isSupported dependency
 
   // Request notification permission
   const requestPermission = useCallback(async (): Promise<NotificationPermission> => {
@@ -127,21 +127,24 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
       return;
     }
 
+    // Get current permission directly from Notification API
+    const currentPermissionStatus = typeof Notification !== 'undefined' ? Notification.permission : 'default';
+    console.log('🔔 Current permission status:', currentPermissionStatus);
+    console.log('👤 Current user:', user?.email);
+
     setIsLoading(true);
     setError(null);
     console.log(`🔄 Subscription attempt ${retryCount + 1}/3`);
 
     try {
-      console.log('🔔 Current permission status:', permission);
-      console.log('👤 Current user:', user?.email);
-      
       // Check and request permission first
       console.log('🔔 Requesting permission...');
-      let currentPermission = permission;
+      let currentPermission = currentPermissionStatus;
       
       if (currentPermission !== 'granted') {
         currentPermission = await Notification.requestPermission();
         console.log('📝 Permission request result:', currentPermission);
+        setPermission(currentPermission); // Update state
       }
       
       if (currentPermission !== 'granted') {
@@ -255,7 +258,7 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
       setIsLoading(false);
       console.log('🏁 Subscription process finished');
     }
-  }, [isSupported, permission, user]);
+  }, [isSupported, user]); // Remove permission from dependencies
 
   // Unsubscribe from push notifications
   const unsubscribe = useCallback(async () => {
