@@ -230,6 +230,27 @@ self.addEventListener('message', (event) => {
       })
     );
   }
+  
+  if (event.data && event.data.type === 'ANDROID_SETUP') {
+    console.log('📱 Android setup message received:', event.data);
+    
+    // Android-specific setup
+    event.waitUntil(
+      self.registration.pushManager.getSubscription()
+        .then(subscription => {
+          if (subscription) {
+            console.log('✅ Android: Found existing subscription');
+            return subscription;
+          } else {
+            console.log('ℹ️ Android: No existing subscription found');
+            return null;
+          }
+        })
+        .catch(err => {
+          console.error('❌ Android: Subscription check failed:', err);
+        })
+    );
+  }
 });
 
 // Helper function to convert base64 string to Uint8Array

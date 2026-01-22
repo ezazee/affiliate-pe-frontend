@@ -49,12 +49,27 @@ export function ForceNotificationPopup() {
   const handleEnable = async () => {
     try {
       const hasPermission = await requestPermission();
-      if (hasPermission) {
+      if (hasPermission === 'granted') {
         await subscribe();
         handleDismiss();
+      } else if (hasPermission === 'denied') {
+        // Show Android specific instructions
+        const userAgent = navigator.userAgent;
+        const isAndroid = /Android/i.test(userAgent);
+        
+        if (isAndroid) {
+          alert('⚠️ Notifikasi diblokir di Android!\n\nUntuk memperbaiki:\n1. Buka Chrome (⋮) → Settings\n2. Site Settings → Notifications\n3. Cari site ini dan pilih "Allow"\n4. Restart Chrome aplikasi');
+        }
       }
     } catch (error) {
       console.error('Failed to enable notifications:', error);
+      
+      const userAgent = navigator.userAgent;
+      const isAndroid = /Android/i.test(userAgent);
+      
+      if (isAndroid) {
+        alert('❌ Gagal mengaktifkan notifikasi Android.\n\nPastikan:\n• WiFi/Mobile data aktif\n• Chrome terupdate\n• Coba restart Chrome');
+      }
     }
   };
 
@@ -154,16 +169,39 @@ export function ForceNotificationPopup() {
                 </div>
               </div>
 
-              {/* Warning for denied permission */}
-              {permission === 'denied' && (
-                <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-                  <div className="text-xs text-yellow-800">
-                    <p className="font-semibold">Notifikasi diblokir</p>
-                    <p>Harap buka browser settings dan izinkan notifikasi untuk website ini.</p>
-                  </div>
-                </div>
-              )}
+               {/* Warning for denied permission */}
+               {permission === 'denied' && (() => {
+                 const userAgent = navigator.userAgent;
+                 const isAndroid = /Android/i.test(userAgent);
+                 
+                 return (
+                   <div className={`flex items-start gap-2 p-3 border rounded-lg ${
+                     isAndroid ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'
+                   }`}>
+                     <AlertCircle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
+                       isAndroid ? 'text-red-600' : 'text-yellow-600'
+                     }`} />
+                     <div className={`text-xs ${isAndroid ? 'text-red-800' : 'text-yellow-800'}`}>
+                       <p className="font-semibold">
+                         {isAndroid ? '⛔ Android: Notifikasi Diblokir' : 'Notifikasi diblokir'}
+                       </p>
+                       {isAndroid ? (
+                         <div className="mt-1 space-y-1">
+                           <p>Untuk memperbaiki di Android:</p>
+                           <ol className="list-decimal list-inside space-y-1">
+                             <li>Chrome (⋮) → Settings</li>
+                             <li>Site Settings → Notifications</li>
+                             <li>Cari site ini → pilih "Allow"</li>
+                             <li>Restart Chrome</li>
+                           </ol>
+                         </div>
+                       ) : (
+                         <p>Harap buka browser settings dan izinkan notifikasi untuk website ini.</p>
+                       )}
+                     </div>
+                   </div>
+                 );
+               })()}
 
               {/* Action Buttons */}
               <div className="space-y-3 pt-2">

@@ -104,7 +104,7 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
     checkSubscription();
   }, [isSupported]);
 
-  // Request notification permission - WITH ANDROID FIX
+  // Request notification permission - IMPROVED ANDROID FIX
   const requestPermission = useCallback(async (): Promise<NotificationPermission> => {
     if (!isSupported) {
       setError('Push notifications are not supported');
@@ -112,61 +112,99 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
     }
 
     try {
-      // Debug Android permission issues
       const userAgent = navigator.userAgent;
       const isAndroid = /Android/i.test(userAgent);
+      const isChrome = /Chrome/i.test(userAgent);
       
+      console.log('📱 Device detected:', { isAndroid, isChrome, userAgent });
+      
+      // Check current permission first
+      const currentPermission = Notification.permission;
+      console.log('🔍 Current permission:', currentPermission);
+      
+      if (currentPermission === 'granted') {
+        setPermission('granted');
+        return 'granted';
+      }
+      
+      if (currentPermission === 'denied') {
+        if (isAndroid) {
+          setError('⛔ Notifikasi diblokir. Untuk memperbaiki:\n1. Buka Chrome Settings (⋮)\n2. Site Settings → Notifications\n3. Cari site ini dan pilih "Allow"\n4. Restart Chrome');
+        } else {
+          setError('Notifikasi diblokir di browser settings');
+        }
+        return 'denied';
+      }
+
+      // For Android, show user instructions before requesting
       if (isAndroid) {
-        console.log('📱 Android device detected, checking permissions...');
+        console.log('📱 Preparing Android permission request...');
         
-        // Try Permissions API first
+        // Try to get system permission status first
         if ('permissions' in navigator) {
           try {
-            const permission = await navigator.permissions.query({ name: 'notifications' });
-            console.log('🔍 Android permission status:', permission.state);
+            const systemPermission = await navigator.permissions.query({ name: 'notifications' });
+            console.log('🔍 System permission:', systemPermission.state);
             
-            if (permission.state === 'denied') {
-              // Log for debugging
-              await fetch('/api/debug/android-permission', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  userAgent,
-                  permissionStatus: permission.state
-                })
-              });
-              
-              setError('Notifications blocked in browser settings. Please enable manually in Chrome Settings.');
-              return 'denied';
+            if (systemPermission.state === 'prompt') {
+              console.log('👋 Ready to show permission dialog to Android user');
             }
           } catch (permErr) {
-            console.warn('Permissions API failed:', permErr);
+            console.warn('Permissions API not available:', permErr);
           }
         }
       }
 
-      // Standard permission request
+      // Request permission with better error handling
       console.log('🔔 Requesting notification permission...');
-      const result = await Notification.requestPermission();
+      
+      // Create a promise wrapper to handle timeout
+      const permissionPromise = Notification.requestPermission();
+      const timeoutPromise = new Promise<NotificationPermission>((_, reject) => {
+        setTimeout(() => reject(new Error('Permission request timeout')), 10000);
+      });
+      
+      const result = await Promise.race([permissionPromise, timeoutPromise]) as NotificationPermission;
       console.log('📋 Permission result:', result);
       
       setPermission(result);
       
-      // If still denied on Android, provide specific guidance
-      if (isAndroid && result === 'denied') {
-        setError('Permission denied. On Android: Chrome Settings → Site Settings → Notifications → Allow this site');
+      // Handle different results
+      if (result === 'granted') {
+        console.log('✅ Permission granted successfully');
+      } else if (result === 'denied') {
+        const userAgent = navigator.userAgent;
+        const isAndroidDevice = /Android/i.test(userAgent);
+        if (isAndroidDevice) {
+          setError('❌ Ditolak. Solusi:\n1. Chrome Settings → Privacy → Site Settings\n2. Notifications → Allow this site\n3. Atau Android Settings → Apps → Chrome → Permissions');
+        } else {
+          setError('Permission denied. Please check browser settings');
+        }
+      } else {
+        setError('Permission request dismissed. Please try again');
       }
       
       return result;
     } catch (err) {
-      console.error('Error requesting permission:', err);
-      setError('Failed to request notification permission');
+      console.error('❌ Permission request error:', err);
+      
+      const userAgent = navigator.userAgent;
+      const isAndroidDevice = /Android/i.test(userAgent);
+      
+      if (err instanceof Error && err.message.includes('timeout')) {
+        setError('⏱️ Request timeout. Please check internet connection and try again');
+      } else if (isAndroidDevice) {
+        setError('❌ Android permission error. Please restart Chrome and try again');
+      } else {
+        setError('Failed to request notification permission');
+      }
+      
       return 'denied';
     }
   }, [isSupported]);
 
-  // Subscribe to push notifications - OPTIMIZED & FAST
-  const subscribe = useCallback(async (retryCount = 0) => {
+  // Subscribe to push notifications - IMPROVED ANDROID COMPATIBLE
+  const subscribe = useCallback(async () => {
     if (!isSupported) {
       setError('Push notifications not supported');
       return;
@@ -175,101 +213,131 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
     setIsLoading(true);
     setError(null);
 
-    // Add timeout to prevent hanging (longer for mobile)
-    const timeout = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Request timeout')), 30000)
-    );
-
     try {
-      // Permission check - don't use timeout for this
-      const currentPermission = Notification.permission === 'granted' ? 
-        Promise.resolve('granted') : 
-        await Notification.requestPermission();
+      console.log('🚀 Starting subscription process...');
+      
+      // Step 1: Ensure service worker is active
+      console.log('📋 Checking service worker...');
+      let registration = await navigator.serviceWorker.ready;
+      
+      if (!registration.active) {
+        console.log('🔧 Service worker not active, registering...');
+        registration = await navigator.serviceWorker.register('/sw.js');
+        await navigator.serviceWorker.ready;
+        console.log('✅ Service worker registered and active');
+      }
+
+      // Step 2: Request permission with better UX
+      console.log('🔔 Checking permission...');
+      let currentPermission = Notification.permission;
+      
+      if (currentPermission === 'default') {
+        console.log('👋 Requesting permission from user...');
+        currentPermission = await requestPermission();
+      }
       
       if (currentPermission !== 'granted') {
-        setError('Permission denied. Please allow notifications.');
+        setError('Permission required. Please allow notifications to continue.');
         return;
       }
 
-      // Get service worker - no timeout needed
-      const registration = await navigator.serviceWorker.ready;
-      
-      // Check existing subscription
+      // Step 3: Check existing subscription
+      console.log('🔍 Checking existing subscription...');
       const existingSubscription = await registration.pushManager.getSubscription();
       
       if (existingSubscription) {
-        // Just set state for existing subscription - no API call needed
+        console.log('✅ Found existing subscription');
         const subscriptionData = existingSubscription.toJSON() as PushSubscription;
         setSubscription(subscriptionData);
         setIsSubscribed(true);
         return;
       }
-      
-      // Create new subscription with correct VAPID key
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BEDiXZ34k42Cp1Vd_AfbmpcUAnq5ZEdj8x-DbNilC6A6Khldz9LlLQFklsbVpXrWslG6qRrIEsEnLy-vlUtKi-w';
-      console.log('🔑 Using VAPID key:', vapidKey.substring(0, 20) + '...');
+
+      // Step 4: Create new subscription with retry
+      console.log('🔑 Creating new subscription...');
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BD7-XYAmgLZETcgTEzRWEPkGmXW0H0iPjGNl3vZvex-h_TFyGCvXifRZIX5mbPbk6HV7qkTs5VGJ-lvjonGoA1o';
       const applicationServerKey = urlB64ToUint8Array(vapidKey);
       
-      const pushSubscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: applicationServerKey.buffer as ArrayBuffer,
-      });
+      const pushSubscription = await Promise.race([
+        registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: applicationServerKey.buffer as ArrayBuffer,
+        }),
+        new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Subscription timeout')), 15000)
+        )
+      ]);
+      
       const subscriptionData = pushSubscription.toJSON() as PushSubscription;
       
-      // Save to server with better error handling
+      if (!validateSubscription(subscriptionData)) {
+        throw new Error('Invalid subscription format received');
+      }
+
+      console.log('📡 Subscription created, saving to server...');
+
+      // Step 5: Save to server with better error handling
       const userEmail = user?.email || localStorage.getItem('userEmail') || '';
       
-      console.log('🔔 Saving subscription to server:', {
-        userEmail,
-        hasSubscription: !!subscriptionData,
-        endpointLength: subscriptionData.endpoint?.length,
-        hasKeys: !!subscriptionData.keys,
-        authLength: subscriptionData.keys?.auth?.length,
-        p256dhLength: subscriptionData.keys?.p256dh?.length
-      });
+      if (!userEmail) {
+        console.warn('⚠️ No user email found, using fallback');
+      }
       
-      const response = await fetch('/api/push/subscribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-email': userEmail,
-        },
-        body: JSON.stringify(subscriptionData),
-      });
-
-      console.log('📡 Server response status:', response.status);
+      const response = await Promise.race([
+        fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-email': userEmail,
+          },
+          body: JSON.stringify(subscriptionData),
+        }),
+        new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Server timeout')), 10000)
+        )
+      ]);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Server error response:', errorText);
-        throw new Error(`Server error: ${response.status} - ${errorText}`);
+        console.error('❌ Server error:', response.status, errorText);
+        throw new Error(`Server error: ${response.status}`);
       }
 
       const result = await response.json();
-      console.log('✅ Subscription saved successfully:', result);
+      console.log('✅ Subscription successful:', result);
 
       setSubscription(subscriptionData);
       setIsSubscribed(true);
       setPermission(currentPermission);
+      setError(null);
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Subscription failed';
       console.error('❌ Subscribe error:', err);
       
+      const userAgent = navigator.userAgent;
+      const isAndroid = /Android/i.test(userAgent);
+      
       if (errorMessage.includes('timeout')) {
-        setError('Connection timeout. Please check your internet and try again.');
-      } else if (errorMessage.includes('Permission denied')) {
-        setError('Please allow notifications in your browser settings.');
-      } else if (errorMessage.includes('Failed to fetch')) {
-        setError('Network error. Please check your connection.');
+        setError(isAndroid ? 
+          '⏱️ Android timeout: Check connection & restart Chrome' : 
+          'Connection timeout. Please try again.'
+        );
+      } else if (errorMessage.includes('permission') || errorMessage.includes('Permission')) {
+        setError('Permission required. Please allow notifications in browser settings.');
+      } else if (errorMessage.includes('Failed to fetch') || errorMessage.includes('Network')) {
+        setError(isAndroid ? 
+          '📱 Android network error: Check WiFi/mobile data' : 
+          'Network error. Please check connection.'
+        );
       } else {
-        setError(errorMessage);
+        setError(`Subscription failed: ${errorMessage}`);
       }
       setIsSubscribed(false);
     } finally {
       setIsLoading(false);
     }
-  }, [isSupported, user]);
+  }, [isSupported, user, requestPermission]);
 
   // Unsubscribe from push notifications
   const unsubscribe = useCallback(async () => {

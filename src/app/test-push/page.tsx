@@ -30,7 +30,7 @@ export default function PushNotificationTestPage() {
       // Subscribe to push
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlB64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BEDiXZ34k42Cp1Vd_AfbmpcUAnq5ZEdj8x-DbNilC6A6Khldz9LlLQFklsbVpXrWslG6qRrIEsEnLy-vlUtKi-w')
+        applicationServerKey: urlB64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BD7-XYAmgLZETcgTEzRWEPkGmXW0H0iPjGNl3vZvex-h_TFyGCvXifRZIX5mbPbk6HV7qkTs5VGJ-lvjonGoA1o')
       });
 
       console.log('Subscription created:', subscription);
