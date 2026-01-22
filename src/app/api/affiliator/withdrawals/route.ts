@@ -3,6 +3,7 @@ import clientPromise from '@/lib/mongodb';
 import { Commission } from '@/types';
 import { Withdrawal } from '@/types/withdrawal';
 import { ObjectId } from 'mongodb';
+import { adminNotifications, affiliatorNotifications } from '@/lib/notification-service-server';
 
 // GET handler to fetch withdrawal history
 export async function GET(req: NextRequest) {
@@ -87,11 +88,14 @@ export async function POST(req: NextRequest) {
       requestedAt: new Date(),
     };
 
-    const result = await withdrawalsCollection.insertOne(newWithdrawal as Withdrawal);
+     const result = await withdrawalsCollection.insertOne(newWithdrawal as Withdrawal);
 
-    // 4. LANGSUNG PROSES: Update usedAmount dan buat reserved commissions
-    let amountToCover = requestedAmount;
-    const reservedCommissionIds = [];
+     // Get affiliator info for notifications
+     const affiliator = await db.collection('users').findOne({ _id: new ObjectId(affiliatorId) });
+
+     // 4. LANGSUNG PROSES: Update usedAmount dan buat reserved commissions
+     let amountToCover = requestedAmount;
+     const reservedCommissionIds = [];
 
     for (const commission of availableCommissions) {
       if (amountToCover <= 0) break;
@@ -142,10 +146,40 @@ export async function POST(req: NextRequest) {
       totalAmount: requestedAmount,
       reservedCommissions: reservedCommissionIds,
       createdAt: new Date(),
-    });
+     });
 
-    const insertedWithdrawal = { ...newWithdrawal, id: result.insertedId.toString() };
-    return NextResponse.json(insertedWithdrawal, { status: 201 });
+     // Send notifications
+     try {
+       if (affiliator && affiliator.email) {
+         // Notification to admins about withdrawal request
+         await adminNotifications.withdrawalRequest(
+           affiliator.name,
+           `Rp ${requestedAmount.toLocaleString('id-ID')}`
+         );
+
+         // Notification to affiliator about approved withdrawal (since it's auto-approved)
+         await affiliatorNotifications.withdrawalApproved(
+           `Rp ${requestedAmount.toLocaleString('id-ID')}`,
+           new Date().toLocaleString('id-ID'),
+           affiliator.email
+         );
+
+         // Update balance notification
+         const remainingBalance = withdrawableBalance - requestedAmount;
+         await affiliatorNotifications.balanceUpdated(
+           `Rp ${remainingBalance.toLocaleString('id-ID')}`,
+           affiliator.email
+         );
+       }
+
+       console.log(`✅ Notifications sent for withdrawal request: ${requestedAmount}`);
+     } catch (notificationError) {
+       console.error('❌ Failed to send notifications for withdrawal:', notificationError);
+       // Continue with withdrawal process even if notification fails
+     }
+
+     const insertedWithdrawal = { ...newWithdrawal, id: result.insertedId.toString() };
+     return NextResponse.json(insertedWithdrawal, { status: 201 });
 
   } catch (error) {
     console.error('Error creating withdrawal request:', error);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
+import { affiliatorNotifications } from '@/lib/notification-service-server';
 
 export async function PUT(
   req: NextRequest,
@@ -24,6 +25,9 @@ export async function PUT(
     if (!withdrawal) {
       return NextResponse.json({ error: 'Withdrawal not found' }, { status: 404 });
     }
+
+    // Get affiliator info for notifications
+    const affiliator = await db.collection('users').findOne({ _id: new ObjectId(withdrawal.affiliatorId) });
 
     // Update withdrawal status
     const result = await db.collection('withdrawals').findOneAndUpdate(
@@ -71,9 +75,49 @@ export async function PUT(
           );
         }
       }
-    }
+     }
 
-    return NextResponse.json(result);
+     // Send notifications
+     try {
+       if (affiliator && affiliator.email) {
+         if (status === 'approved' || status === 'completed') {
+           await affiliatorNotifications.withdrawalApproved(
+             `Rp ${withdrawal.amount.toLocaleString('id-ID')}`,
+             new Date().toLocaleString('id-ID'),
+             affiliator.email
+           );
+
+           // Update balance notification
+           const allCommissions = await db.collection('commissions').find({
+             affiliatorId: withdrawal.affiliatorId,
+             status: 'paid'
+           }).toArray();
+
+           const availableBalance = allCommissions.reduce((sum, commission) => {
+             const usedAmount = commission.usedAmount || 0;
+             return sum + (commission.amount - usedAmount);
+           }, 0);
+
+           await affiliatorNotifications.balanceUpdated(
+             `Rp ${availableBalance.toLocaleString('id-ID')}`,
+             affiliator.email
+           );
+
+         } else if (status === 'rejected') {
+           await affiliatorNotifications.withdrawalRejected(
+             `Rp ${withdrawal.amount.toLocaleString('id-ID')}`,
+             rejectionReason || 'Admin rejection',
+             affiliator.email
+           );
+         }
+       }
+
+       console.log(`✅ Notification sent for withdrawal ${status}: ${id}`);
+     } catch (notificationError) {
+       console.error('❌ Failed to send notifications for withdrawal update:', notificationError);
+     }
+
+     return NextResponse.json(result);
   } catch (error) {
     console.error('Error updating withdrawal:', error);
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { User, Product, AffiliateLink } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
+import { adminNotifications } from '@/lib/notification-service-server';
 
 
 // Function to generate a unique referral code
@@ -51,7 +52,14 @@ export async function POST(req: NextRequest) {
     const result = await db.collection('users').insertOne(userToInsert);
     const createdUser: User = { ...userToInsert, _id: result.insertedId, id: result.insertedId.toString() };
 
-
+    // Send notification to admins about new affiliator registration
+    try {
+      await adminNotifications.newAffiliator(name, email);
+      console.log(`✅ Notification sent to admins for new affiliator: ${email}`);
+    } catch (notificationError) {
+      console.error('❌ Failed to send notification to admins:', notificationError);
+      // Continue with registration even if notification fails
+    }
 
     // Note: Affiliate links will be created when admin approves the user
     // This prevents affiliates from having links before approval

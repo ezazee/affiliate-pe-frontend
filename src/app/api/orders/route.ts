@@ -3,6 +3,7 @@ import clientPromise from '@/lib/mongodb';
 import { Order, OrderStatus } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { ObjectId } from 'mongodb';
+import { adminNotifications, affiliatorNotifications } from '@/lib/notification-service-server';
 
 
 // Helper function to generate a unique order number
@@ -85,16 +86,46 @@ export async function POST(req: NextRequest) {
       createdAt: new Date(),
     };
 
-    const result = await db.collection('orders').insertOne(orderToInsert);
+     const result = await db.collection('orders').insertOne(orderToInsert);
 
+     // Get affiliator info for notifications
+     const affiliator = await db.collection('users').findOne({ _id: new ObjectId(affiliatorId) });
 
+     // Send notifications
+     try {
+       // Notification to admins
+       await adminNotifications.newOrder(
+         orderNumber, 
+         buyerName, 
+         `Rp ${totalPrice.toLocaleString('id-ID')}`
+       );
 
-    // Return only necessary info for payment navigation
-    return NextResponse.json({ 
-      paymentToken: orderToInsert.paymentToken, 
-      orderNumber: orderToInsert.orderNumber,
-      status: orderToInsert.status
-    }, { status: 201 });
+       // Notification to affiliator
+       if (affiliator && affiliator.email) {
+         // Calculate commission (you might want to get this from product or settings)
+         const commissionRate = 0.1; // 10% commission
+         const commissionAmount = Math.round(productPrice * commissionRate);
+         
+         await affiliatorNotifications.newOrder(
+           orderNumber,
+           buyerName,
+           `Rp ${commissionAmount.toLocaleString('id-ID')}`,
+           affiliator.email
+         );
+       }
+
+       console.log(`✅ Notifications sent for new order: ${orderNumber}`);
+     } catch (notificationError) {
+       console.error('❌ Failed to send notifications for order:', notificationError);
+       // Continue with order creation even if notification fails
+     }
+
+     // Return only necessary info for payment navigation
+     return NextResponse.json({ 
+       paymentToken: orderToInsert.paymentToken, 
+       orderNumber: orderToInsert.orderNumber,
+       status: orderToInsert.status
+     }, { status: 201 });
   } catch (error) {
 
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
