@@ -15,7 +15,10 @@ const urlsToCache = [
 
 // Install event - cache resources
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: Installing...');
+  console.log('🔧 Service Worker: Installing...');
+  console.log('📱 User Agent:', navigator.userAgent);
+  console.log('🌐 Origin:', self.location.origin);
+  
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -23,11 +26,11 @@ self.addEventListener('install', (event) => {
         return cache.addAll(urlsToCache);
       })
       .then(() => {
-        console.log('Service Worker: Install complete');
+        console.log('✅ Service Worker: Install complete');
         return self.skipWaiting();
       })
       .catch((error) => {
-        console.error('Service Worker: Install failed:', error);
+        console.error('❌ Service Worker: Install failed:', error);
       })
   );
 });

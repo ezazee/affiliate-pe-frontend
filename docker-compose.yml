@@ -16,8 +16,8 @@ services:
       - MONGODB_URI=mongodb+srv://affiliate_peskin:bCYIKdcQjTddlSz6@cluster0.iayxw9v.mongodb.net/?appName=Cluster0
       - NEXTAUTH_URL=http://localhost:3000
       - BLOB_READ_WRITE_TOKEN=vercel_blob_rw_Ca5yF9XS9E2WJU3x_DguYzqKp3m8duJjHGPDILrH6jHBlKz
-      - NEXT_PUBLIC_VAPID_PUBLIC_KEY=BILYQ98tlwWNaQr4pMx3D42k9gQ8raElNIhXU9OCTElnegaZF_sroUPocViXF2poTp6e3tktTMb5UgJdNbOm2MQ
-      - VAPID_PRIVATE_KEY=XB7EyQM7fuKlSUl2xaOnIvTUq2LfiEa_8eMLv-7Qu4g
+      - NEXT_PUBLIC_VAPID_PUBLIC_KEY=BEDiXZ34k42Cp1Vd_AfbmpcUAnq5ZEdj8x-DbNilC6A6Khldz9LlLQFklsbVpXrWslG6qRrIEsEnLy-vlUtKi-w
+      - VAPID_PRIVATE_KEY=pE461xFyjwdTHn3gX5yMqN3x_yv3mtjoLu57bQBqHAg
     volumes:
       - .:/app
       - /app/node_modules

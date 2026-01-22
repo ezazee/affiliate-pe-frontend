@@ -32,13 +32,30 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
   // Check if push notifications are supported
   useEffect(() => {
     const checkSupport = () => {
+      const userAgent = navigator.userAgent;
+      const isAndroid = /Android/i.test(userAgent);
+      const isChrome = /Chrome/i.test(userAgent);
+      
+      console.log('📱 Device info:', { userAgent, isAndroid, isChrome });
+      
       const supported = 'serviceWorker' in navigator && 
                        'PushManager' in window && 
                        'Notification' in window;
+      
+      console.log('🔧 Feature support:', {
+        serviceWorker: 'serviceWorker' in navigator,
+        pushManager: 'PushManager' in window,
+        notification: 'Notification' in window
+      });
+      
       setIsSupported(supported);
       
       if (supported) {
         setPermission(Notification.permission);
+      } else {
+        if (isAndroid && !isChrome) {
+          console.warn('⚠️ Push notifications require Chrome on Android');
+        }
       }
     };
 
@@ -49,10 +66,16 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
   useEffect(() => {
     if (!isSupported) return;
 
-    const checkSubscription = async () => {
+      const checkSubscription = async () => {
       try {
         console.log('🔍 Checking current subscription status...');
+        console.log('📱 Browser info:', navigator.userAgent);
+        console.log('🔧 Service Worker support:', 'serviceWorker' in navigator);
+        console.log('🔧 Push Manager support:', 'PushManager' in window);
+        
         const registration = await navigator.serviceWorker.ready;
+        console.log('✅ Service worker ready, scope:', registration.scope);
+        
         const sub = await registration.pushManager.getSubscription();
         
         if (sub) {
@@ -94,12 +117,12 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
   // Subscribe to push notifications
   const subscribe = useCallback(async (retryCount = 0) => {
     if (!isSupported) {
-      setError('Push notifications are not supported');
+      setError('Push notifications are not supported on this device');
       return;
     }
 
     if (retryCount > 2) {
-      setError('Failed after 3 attempts. Please check your connection and try again.');
+      setError('Failed after 3 attempts. Please check your connection and browser settings.');
       setIsLoading(false);
       return;
     }
@@ -110,17 +133,16 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
 
     try {
       console.log('🔔 Current permission status:', permission);
+      console.log('👤 Current user:', user?.email);
       
-      // Always check and request permission
+      // Check and request permission first
       console.log('🔔 Requesting permission...');
-      const currentPermission = await Promise.race([
-        Notification.requestPermission(),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Permission request timeout')), 10000)
-        )
-      ]) as NotificationPermission;
+      let currentPermission = permission;
       
-      console.log('📝 Permission request result:', currentPermission);
+      if (currentPermission !== 'granted') {
+        currentPermission = await Notification.requestPermission();
+        console.log('📝 Permission request result:', currentPermission);
+      }
       
       if (currentPermission !== 'granted') {
         setError(`Permission ${currentPermission}. Please allow notifications in browser settings.`);
@@ -132,21 +154,16 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
 
       console.log('🔄 Starting push subscription process...');
       
-      // Get service worker registration with timeout
+      // Get service worker registration
       console.log('📱 Getting service worker registration...');
-      const registration = await Promise.race([
-        navigator.serviceWorker.ready,
-        new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Service worker registration timeout')), 10000)
-        )
-      ]);
+      const registration = await navigator.serviceWorker.ready;
       console.log('✅ Service worker ready:', registration.scope);
       
       // Check existing subscription first
       console.log('🔍 Checking existing subscription...');
       const existingSubscription = await registration.pushManager.getSubscription();
       if (existingSubscription) {
-        console.log('🔄 Found existing subscription, updating...');
+        console.log('🔄 Found existing subscription, updating server...');
         const subscriptionData = existingSubscription.toJSON() as PushSubscription;
         setSubscription(subscriptionData);
         setIsSubscribed(true);
@@ -165,31 +182,25 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
           console.log('✅ Existing subscription updated on server');
           setIsLoading(false);
           return;
+        } else {
+          console.log('⚠️ Server update failed, continuing with new subscription...');
         }
       }
       
       // Convert VAPID key
       console.log('🔑 Converting VAPID key...');
-      if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
-        throw new Error('VAPID public key not found');
-      }
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 
+                       'BILYQ98tlwWNaQr4pMx3D42k9gQ8raElNIhXU9OCTElnegaZF_sroUPocViXF2poTp6e3tktTMb5UgJdNbOm2MQ';
       
-      const applicationServerKey = urlB64ToUint8Array(
-        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-      );
+      const applicationServerKey = urlB64ToUint8Array(vapidKey);
       console.log('✅ VAPID key converted, length:', applicationServerKey.length);
 
-      // Subscribe to push with timeout
+      // Subscribe to push
       console.log('🔔 Subscribing to push manager...');
-      const pushSubscription = await Promise.race([
-        registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: applicationServerKey.buffer as ArrayBuffer,
-        }),
-        new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Push subscription timeout')), 15000)
-        )
-      ]);
+      const pushSubscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: applicationServerKey.buffer as ArrayBuffer,
+      });
       
       console.log('✅ Push subscription successful:', pushSubscription.endpoint);
 
@@ -198,20 +209,16 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
       setIsSubscribed(true);
       console.log('💾 Sending subscription to server...');
 
-      // Send subscription to server with timeout
-      const response = await Promise.race([
-        fetch('/api/push/subscribe', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-user-email': user?.email || '',
-          },
-          body: JSON.stringify(subscriptionData),
-        }),
-        new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Server request timeout')), 10000)
-        )
-      ]) as Response;
+      // Send subscription to server
+      console.log('📡 Sending to server with user:', user?.email);
+      const response = await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-email': user?.email || '',
+        },
+        body: JSON.stringify(subscriptionData),
+      });
 
       console.log('📡 Server response status:', response.status);
       
@@ -229,22 +236,26 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
       const errorMessage = err instanceof Error ? err.message : 'Failed to subscribe to push notifications';
       console.error('❌ Error details:', errorMessage);
       
-      // Retry for network errors
-      if (errorMessage.includes('timeout') || errorMessage.includes('network') || errorMessage.includes('fetch')) {
+      // For Android, retry common issues
+      if (retryCount < 2 && (
+        errorMessage.includes('timeout') || 
+        errorMessage.includes('network') || 
+        errorMessage.includes('fetch') ||
+        errorMessage.includes('Failed to fetch') ||
+        errorMessage.includes('service worker')
+      )) {
         console.log(`🔄 Retrying subscription... (${retryCount + 1}/3)`);
-        setTimeout(() => subscribe(retryCount + 1), 2000);
+        setTimeout(() => subscribe(retryCount + 1), 3000);
         return;
       }
       
       setError(errorMessage);
       setIsSubscribed(false);
     } finally {
-      if (retryCount === 0) { // Only set loading to false on final attempt
-        setIsLoading(false);
-        console.log('🏁 Subscription process finished');
-      }
+      setIsLoading(false);
+      console.log('🏁 Subscription process finished');
     }
-  }, [isSupported, permission, requestPermission]);
+  }, [isSupported, permission, user]);
 
   // Unsubscribe from push notifications
   const unsubscribe = useCallback(async () => {
@@ -313,4 +324,20 @@ function urlB64ToUint8Array(base64String: string): Uint8Array {
     outputArray[i] = rawData.charCodeAt(i);
   }
   return outputArray;
+}
+
+// Helper function to validate subscription format
+function validateSubscription(subscription: any): boolean {
+  if (!subscription.endpoint || !subscription.keys) {
+    console.error('❌ Invalid subscription: missing endpoint or keys');
+    return false;
+  }
+  
+  if (!subscription.keys.auth || !subscription.keys.p256dh) {
+    console.error('❌ Invalid subscription: missing auth or p256dh keys');
+    return false;
+  }
+  
+  console.log('✅ Subscription format valid');
+  return true;
 }

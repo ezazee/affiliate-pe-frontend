@@ -23,9 +23,10 @@ export async function POST(request: NextRequest) {
   try {
     const subscription = await request.json();
 
-    if (!subscription.endpoint || !subscription.keys) {
+    if (!subscription.endpoint || !subscription.keys || !subscription.keys.auth || !subscription.keys.p256dh) {
+      console.error('❌ Invalid subscription data received:', subscription);
       return NextResponse.json(
-        { error: 'Invalid subscription data' },
+        { error: 'Invalid subscription data. Missing required fields.', details: subscription },
         { status: 400 }
       );
     }
