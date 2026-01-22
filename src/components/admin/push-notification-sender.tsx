@@ -61,7 +61,7 @@ export const PushNotificationSender = ({ className }: PushNotificationSenderProp
       };
 
       if (targetType === 'specific') {
-        payload.targetUserId = targetUserId.trim();
+        payload.targetEmail = targetUserId.trim(); // API expects targetEmail, not targetUserId
       }
 
       const response = await fetch('/api/push/send', {

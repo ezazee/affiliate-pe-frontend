@@ -20,7 +20,7 @@ async function connectToDatabase() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { title, body, url = '/', targetUserId } = await request.json();
+    const { title, body, url = '/', targetEmail } = await request.json();
 
     if (!title || !body) {
       return NextResponse.json(
@@ -38,9 +38,9 @@ export async function POST(request: NextRequest) {
       notificationsEnabled: true 
     };
 
-    // If targetUserId is specified, only send to that user
-    if (targetUserId) {
-      query.email = targetUserId; // Using email as identifier
+    // If targetEmail is specified, only send to that user
+    if (targetEmail) {
+      query.email = targetEmail;
     }
 
     const users = await usersCollection.find(query).toArray();
@@ -79,10 +79,13 @@ export async function POST(request: NextRequest) {
         await webpush.sendNotification(user.pushSubscription, payload);
         return { success: true, userId: user.email };
       } catch (error: any) {
-        console.error(`Failed to send to ${user.email}:`, error);
+        console.error(`❌ Failed to send to ${user.email}:`, error.message);
         
-        // If subscription is invalid, remove it
-        if (error.statusCode === 410 || error.statusCode === 404) {
+        // If subscription is invalid or expired, remove it
+        if (error.statusCode === 410 || error.statusCode === 404 || 
+            error.message.includes('unexpected response code') ||
+            error.message.includes('registration')) {
+          console.log(`🗑️ Removing invalid subscription for ${user.email}`);
           await usersCollection.updateOne(
             { email: user.email },
             {
@@ -90,6 +93,7 @@ export async function POST(request: NextRequest) {
               $set: { notificationsEnabled: false },
             }
           );
+          return { success: false, userId: user.email, error: 'Subscription expired and removed' };
         }
         
         return { success: false, userId: user.email, error: error.message };
@@ -143,7 +147,7 @@ export async function GET() {
           title: 'Notification Title',
           body: 'Notification body text',
           url: '/', // optional
-          targetUserId: 'user@example.com' // optional, sends to all if not specified
+          targetEmail: 'user@example.com' // optional, sends to all if not specified
         }
       }
     });
