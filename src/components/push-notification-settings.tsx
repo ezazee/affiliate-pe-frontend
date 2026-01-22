@@ -57,20 +57,34 @@ export const PushNotificationSettings = ({ userId, className }: PushNotification
         });
       }
     } else {
-      // Fast feedback - update UI immediately
-      setIsEnabled(true);
-      
+      // Show loading first, then enable after success
       try {
         await subscribe();
+        setIsEnabled(true);
         toast({
           title: 'Notifications Enabled',
           description: 'You will now receive push notifications.',
         });
       } catch (err) {
-        // Revert UI on error
+        // Keep UI disabled on error
         setIsEnabled(false);
         // Error is already handled by the hook
         console.error('Toggle subscription error:', err);
+        
+        // Show additional help for Android
+        if (err instanceof Error && err.message.includes('timeout')) {
+          toast({
+            title: 'Connection Issue',
+            description: 'Please check your internet connection and try again.',
+            variant: 'destructive',
+          });
+        } else if (err instanceof Error && err.message.includes('Permission denied')) {
+          toast({
+            title: 'Permission Required',
+            description: 'Please allow notifications in your browser settings.',
+            variant: 'destructive',
+          });
+        }
       }
     }
   };

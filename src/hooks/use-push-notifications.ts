@@ -62,22 +62,41 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
     checkSupport();
   }, []);
 
-  // Check current subscription status - SIMPLE
+  // Check current subscription status - WITH SERVICE WORKER FIX
   useEffect(() => {
     if (!isSupported) return;
 
     const checkSubscription = async () => {
       try {
-        const registration = await navigator.serviceWorker.ready;
+        // Ensure service worker is registered
+        let registration = await navigator.serviceWorker.ready;
+        
+        // If no active service worker, register manually
+        if (!registration.active) {
+          console.log('🔧 Registering service worker manually...');
+          registration = await navigator.serviceWorker.register('/sw.js');
+          await navigator.serviceWorker.ready;
+        }
+        
         const sub = await registration.pushManager.getSubscription();
         
         if (sub) {
-          setSubscription(sub.toJSON() as PushSubscription);
+          const subscriptionData = sub.toJSON() as PushSubscription;
+          console.log('📱 Found existing subscription:', {
+            endpoint: subscriptionData.endpoint?.substring(0, 50) + '...',
+            hasKeys: !!subscriptionData.keys,
+            authLength: subscriptionData.keys?.auth?.length,
+            p256dhLength: subscriptionData.keys?.p256dh?.length
+          });
+          
+          setSubscription(subscriptionData);
           setIsSubscribed(true);
         } else {
+          console.log('📱 No existing subscription found');
           setIsSubscribed(false);
         }
       } catch (err) {
+        console.error('❌ Subscription check failed:', err);
         setIsSubscribed(false);
       }
     };
@@ -143,8 +162,9 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
         return;
       }
       
-      // Create new subscription with timeout
-      const vapidKey = 'BEDiXZ34k42Cp1Vd_AfbmpcUAnq5ZEdj8x-DbNilC6A6Khldz9LlLQFklsbVpXrWslG6qRrIEsEnLy-vlUtKi-w';
+      // Create new subscription with correct VAPID key
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BEDiXZ34k42Cp1Vd_AfbmpcUAnq5ZEdj8x-DbNilC6A6Khldz9LlLQFklsbVpXrWslG6qRrIEsEnLy-vlUtKi-w';
+      console.log('🔑 Using VAPID key:', vapidKey.substring(0, 20) + '...');
       const applicationServerKey = urlB64ToUint8Array(vapidKey);
       
       const pushSubscription = await registration.pushManager.subscribe({
@@ -153,41 +173,37 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
       });
       const subscriptionData = pushSubscription.toJSON() as PushSubscription;
       
-      // Save to server with retry and timeout
+      // Save to server with better error handling
       const userEmail = user?.email || localStorage.getItem('userEmail') || '';
       
-      let response: Response;
-      let retries = 2;
+      console.log('🔔 Saving subscription to server:', {
+        userEmail,
+        hasSubscription: !!subscriptionData,
+        endpointLength: subscriptionData.endpoint?.length,
+        hasKeys: !!subscriptionData.keys,
+        authLength: subscriptionData.keys?.auth?.length,
+        p256dhLength: subscriptionData.keys?.p256dh?.length
+      });
       
-      while (retries > 0) {
-        try {
-          const savePromise = fetch('/api/push/subscribe', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-user-email': userEmail,
-            },
-            body: JSON.stringify(subscriptionData),
-          });
-          
-          const timeoutPromise = new Promise<Response>((_, reject) => 
-            setTimeout(() => reject(new Error('Server timeout')), 15000)
-          );
-          
-          response = await Promise.race([savePromise, timeoutPromise]);
-          break; // Success, exit retry loop
-        } catch (error) {
-          retries--;
-          if (retries === 0) throw error;
-          console.log(`🔄 Retry subscription... (${2 - retries}/2)`);
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
-        }
+      const response = await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-email': userEmail,
+        },
+        body: JSON.stringify(subscriptionData),
+      });
+
+      console.log('📡 Server response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Server error response:', errorText);
+        throw new Error(`Server error: ${response.status} - ${errorText}`);
       }
 
-      if (!response.ok) {
-        // Still set local state even if server fails for better UX
-        console.warn('Server save failed, but subscription active locally');
-      }
+      const result = await response.json();
+      console.log('✅ Subscription saved successfully:', result);
 
       setSubscription(subscriptionData);
       setIsSubscribed(true);

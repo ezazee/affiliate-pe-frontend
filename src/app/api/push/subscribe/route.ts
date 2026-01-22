@@ -69,8 +69,22 @@ export async function POST(request: NextRequest) {
       matchedCount: result.matchedCount,
       modifiedCount: result.modifiedCount,
       upsertedCount: result.upsertedCount,
-      subscriptionEndpoint: subscription.endpoint?.substring(0, 50) + '...'
+      subscriptionEndpoint: subscription.endpoint?.substring(0, 50) + '...',
+      subscriptionKeys: subscription.keys ? {
+        authLength: subscription.keys.auth?.length,
+        p256dhLength: subscription.keys.p256dh?.length
+      } : null
     });
+
+    // Validate subscription format
+    if (!subscription.endpoint || !subscription.keys || !subscription.keys.auth || !subscription.keys.p256dh) {
+      console.warn('⚠️ Subscription validation failed:', subscription);
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid subscription format',
+        details: 'Missing required fields: endpoint or keys'
+      }, { status: 400 });
+    }
 
     // Skip test notification for faster response
 
