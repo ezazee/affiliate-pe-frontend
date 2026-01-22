@@ -161,9 +161,23 @@ export const PushNotificationSettings = ({ userId, className }: PushNotification
 
         {permission === 'denied' && (
           <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-            <p className="text-sm text-yellow-800">
-              Notifications are blocked in your browser settings. Please enable them in your browser preferences.
+            <p className="text-sm text-yellow-800 font-medium mb-2">
+              Notifications are blocked. For Android devices:
             </p>
+            <ol className="text-sm text-yellow-800 space-y-1 list-decimal list-inside">
+              <li>Open Chrome Settings (⋮ menu)</li>
+              <li>Go to "Site Settings" → "Notifications"</li>
+              <li>Find this site and set to "Allow"</li>
+              <li>Or check Android Settings → Apps → Chrome → Permissions</li>
+            </ol>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open('chrome://settings/content/notifications', '_blank')}
+              className="mt-2 text-xs"
+            >
+              Open Chrome Settings
+            </Button>
           </div>
         )}
 

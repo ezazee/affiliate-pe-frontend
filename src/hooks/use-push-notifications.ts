@@ -104,7 +104,7 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
     checkSubscription();
   }, [isSupported]);
 
-  // Request notification permission
+  // Request notification permission - WITH ANDROID FIX
   const requestPermission = useCallback(async (): Promise<NotificationPermission> => {
     if (!isSupported) {
       setError('Push notifications are not supported');
@@ -112,8 +112,51 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
     }
 
     try {
+      // Debug Android permission issues
+      const userAgent = navigator.userAgent;
+      const isAndroid = /Android/i.test(userAgent);
+      
+      if (isAndroid) {
+        console.log('📱 Android device detected, checking permissions...');
+        
+        // Try Permissions API first
+        if ('permissions' in navigator) {
+          try {
+            const permission = await navigator.permissions.query({ name: 'notifications' });
+            console.log('🔍 Android permission status:', permission.state);
+            
+            if (permission.state === 'denied') {
+              // Log for debugging
+              await fetch('/api/debug/android-permission', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userAgent,
+                  permissionStatus: permission.state
+                })
+              });
+              
+              setError('Notifications blocked in browser settings. Please enable manually in Chrome Settings.');
+              return 'denied';
+            }
+          } catch (permErr) {
+            console.warn('Permissions API failed:', permErr);
+          }
+        }
+      }
+
+      // Standard permission request
+      console.log('🔔 Requesting notification permission...');
       const result = await Notification.requestPermission();
+      console.log('📋 Permission result:', result);
+      
       setPermission(result);
+      
+      // If still denied on Android, provide specific guidance
+      if (isAndroid && result === 'denied') {
+        setError('Permission denied. On Android: Chrome Settings → Site Settings → Notifications → Allow this site');
+      }
+      
       return result;
     } catch (err) {
       console.error('Error requesting permission:', err);

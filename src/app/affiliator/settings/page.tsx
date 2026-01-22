@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Settings, User, Bell, Shield } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { PushNotificationSettings } from '@/components/push-notification-settings';
+import AndroidPermissionFix from '@/components/android-permission-fix';
 
 export default function AffiliatorSettingsPage() {
   const { user } = useAuth();
@@ -65,6 +66,10 @@ export default function AffiliatorSettingsPage() {
           <PushNotificationSettings userId={user?.email} />
         </motion.div>
       </div>
+
+      {/* Android Permission Fix Helper */}
+      <AndroidPermissionFix />
+    </div>
 
       {/* Additional Settings */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
