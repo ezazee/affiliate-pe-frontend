@@ -4,6 +4,7 @@ import { Commission } from '@/types';
 import { Withdrawal } from '@/types/withdrawal';
 import { ObjectId } from 'mongodb';
 import { adminNotifications, affiliatorNotifications } from '@/lib/notification-service-server';
+import { webNotificationService } from '@/lib/web-notification-service';
 
 // GET handler to fetch withdrawal history
 export async function GET(req: NextRequest) {
@@ -151,28 +152,43 @@ export async function POST(req: NextRequest) {
      // Send notifications
      try {
        if (affiliator && affiliator.email) {
-         // Notification to admins about withdrawal request
+         // Push notifications
          await adminNotifications.withdrawalRequest(
            affiliator.name,
            `Rp ${requestedAmount.toLocaleString('id-ID')}`
          );
 
-         // Notification to affiliator about approved withdrawal (since it's auto-approved)
          await affiliatorNotifications.withdrawalApproved(
            `Rp ${requestedAmount.toLocaleString('id-ID')}`,
            new Date().toLocaleString('id-ID'),
            affiliator.email
          );
 
-         // Update balance notification
          const remainingBalance = withdrawableBalance - requestedAmount;
          await affiliatorNotifications.balanceUpdated(
            `Rp ${remainingBalance.toLocaleString('id-ID')}`,
            affiliator.email
          );
+
+         // Web notifications
+         await webNotificationService.notifyWithdrawalRequest(
+           affiliator.name,
+           `Rp ${requestedAmount.toLocaleString('id-ID')}`
+         );
+
+         await webNotificationService.notifyWithdrawalApproved(
+           `Rp ${requestedAmount.toLocaleString('id-ID')}`,
+           new Date().toLocaleString('id-ID'),
+           affiliator.email
+         );
+
+         await webNotificationService.notifyBalanceUpdated(
+           `Rp ${remainingBalance.toLocaleString('id-ID')}`,
+           affiliator.email
+         );
        }
 
-       console.log(`✅ Notifications sent for withdrawal request: ${requestedAmount}`);
+       console.log(`✅ All notifications sent for withdrawal request: ${requestedAmount}`);
      } catch (notificationError) {
        console.error('❌ Failed to send notifications for withdrawal:', notificationError);
        // Continue with withdrawal process even if notification fails

@@ -1,20 +1,21 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Bell, 
   Check, 
   X, 
-  UserPlus, 
   ShoppingCart, 
-  DollarSign, 
-  Info, 
+  Package, 
   CheckCircle, 
   AlertCircle, 
   XCircle,
   Trash2,
-  Eye
+  Eye,
+  DollarSign,
+  Send,
+  Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,14 +38,23 @@ const getNotificationIcon = (type: WebNotification['type']) => {
 };
 
 const getRelatedIcon = (title: string) => {
-  if (title.toLowerCase().includes('affiliator') || title.toLowerCase().includes('pendaftaran')) {
-    return <UserPlus className="w-4 h-4 text-blue-600" />;
-  }
   if (title.toLowerCase().includes('pesanan') || title.toLowerCase().includes('order')) {
-    return <ShoppingCart className="w-4 h-4 text-green-600" />;
+    return <ShoppingCart className="w-4 h-4 text-blue-600" />;
+  }
+  if (title.toLowerCase().includes('dikirim') || title.toLowerCase().includes('shipped')) {
+    return <Send className="w-4 h-4 text-purple-600" />;
+  }
+  if (title.toLowerCase().includes('selesai') || title.toLowerCase().includes('completed')) {
+    return <Package className="w-4 h-4 text-green-600" />;
+  }
+  if (title.toLowerCase().includes('komisi') || title.toLowerCase().includes('commission')) {
+    return <DollarSign className="w-4 h-4 text-yellow-600" />;
+  }
+  if (title.toLowerCase().includes('saldo') || title.toLowerCase().includes('balance')) {
+    return <DollarSign className="w-4 h-4 text-green-600" />;
   }
   if (title.toLowerCase().includes('penarikan') || title.toLowerCase().includes('withdrawal')) {
-    return <DollarSign className="w-4 h-4 text-yellow-600" />;
+    return <DollarSign className="w-4 h-4 text-red-600" />;
   }
   return <Bell className="w-4 h-4 text-gray-600" />;
 };
@@ -73,7 +83,7 @@ const getFullDateTime = (date: Date) => {
   }).format(date);
 };
 
-export default function AdminNotificationsPage() {
+export default function AffiliatorNotificationsPage() {
   const { 
     state, 
     markAsRead, 
@@ -121,13 +131,13 @@ export default function AdminNotificationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-            <Bell className="w-6 h-6 text-blue-600" />
+          <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+            <Bell className="w-6 h-6 text-purple-600" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">Notifikasi</h1>
+            <h1 className="text-3xl font-bold">Notifikasi Saya</h1>
             <p className="text-muted-foreground">
-              Kelola semua notifikasi sistem admin
+              Lihat semua update komisi dan pesanan affiliator
             </p>
           </div>
         </div>
@@ -154,7 +164,7 @@ export default function AdminNotificationsPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
+            <div className="text-2xl font-bold text-purple-600">{stats.total}</div>
             <div className="text-sm text-muted-foreground">Total</div>
           </CardContent>
         </Card>
@@ -191,6 +201,61 @@ export default function AdminNotificationsPage() {
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-blue-600">{stats.info}</div>
             <div className="text-sm text-muted-foreground">Info</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+          <CardContent className="p-4 text-center">
+            <ShoppingCart className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+            <h3 className="font-semibold text-blue-900">Pesanan</h3>
+            <p className="text-xs text-blue-700 mt-1">
+              {state.notifications.filter(n => 
+                n.title.toLowerCase().includes('pesanan') || 
+                n.title.toLowerCase().includes('order')
+              ).length} notifikasi
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
+          <CardContent className="p-4 text-center">
+            <DollarSign className="w-8 h-8 text-green-600 mx-auto mb-2" />
+            <h3 className="font-semibold text-green-900">Komisi</h3>
+            <p className="text-xs text-green-700 mt-1">
+              {state.notifications.filter(n => 
+                n.title.toLowerCase().includes('komisi') || 
+                n.title.toLowerCase().includes('commission')
+              ).length} notifikasi
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200">
+          <CardContent className="p-4 text-center">
+            <Package className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+            <h3 className="font-semibold text-purple-900">Selesai</h3>
+            <p className="text-xs text-purple-700 mt-1">
+              {state.notifications.filter(n => 
+                n.title.toLowerCase().includes('selesai') || 
+                n.title.toLowerCase().includes('completed')
+              ).length} notifikasi
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-r from-red-50 to-red-100 border-red-200">
+          <CardContent className="p-4 text-center">
+            <XCircle className="w-8 h-8 text-red-600 mx-auto mb-2" />
+            <h3 className="font-semibold text-red-900">Ditolak</h3>
+            <p className="text-xs text-red-700 mt-1">
+              {state.notifications.filter(n => 
+                n.title.toLowerCase().includes('ditolak') || 
+                n.title.toLowerCase().includes('rejected')
+              ).length} notifikasi
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -246,6 +311,17 @@ export default function AdminNotificationsPage() {
                 <p className="text-sm mt-1">
                   {filter !== 'all' && 'Coba ubah filter untuk melihat notifikasi lainnya'}
                 </p>
+                <p className="text-sm mt-2">
+                  Anda akan menerima notifikasi ketika:
+                </p>
+                <ul className="text-sm mt-1 text-left max-w-md">
+                  <li>• Pesanan baru diterima</li>
+                  <li>• Pesanan dikirim</li>
+                  <li>• Pesanan selesai</li>
+                  <li>• Komisi diterima</li>
+                  <li>• Saldo diperbarui</li>
+                  <li>• Penarikan disetujui/ditolak</li>
+                </ul>
               </div>
             ) : (
               <div className="divide-y">
@@ -256,7 +332,7 @@ export default function AdminNotificationsPage() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
                     className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
-                      !notification.read ? 'bg-blue-50' : ''
+                      !notification.read ? 'bg-purple-50' : ''
                     }`}
                     onClick={() => handleNotificationClick(notification)}
                   >
@@ -270,7 +346,7 @@ export default function AdminNotificationsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
                           <h3 className={`text-sm font-semibold truncate flex items-center gap-2 ${
-                            !notification.read ? 'text-blue-900' : 'text-gray-900'
+                            !notification.read ? 'text-purple-900' : 'text-gray-900'
                           }`}>
                             <span>{notification.title}</span>
                             {!notification.read && (
@@ -317,7 +393,7 @@ export default function AdminNotificationsPage() {
                           </span>
                           
                           {notification.url && (
-                            <div className="text-xs text-blue-600">
+                            <div className="text-xs text-purple-600">
                               Klik untuk melihat detail →
                             </div>
                           )}

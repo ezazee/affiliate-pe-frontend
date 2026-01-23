@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import { affiliatorNotifications } from '@/lib/notification-service-server';
+import { webNotificationService } from '@/lib/web-notification-service';
 
 export async function POST(req: NextRequest) {
   try {
@@ -49,6 +50,14 @@ export async function POST(req: NextRequest) {
             order.buyerName,
             targetEmail
           );
+
+          // Add web notification
+          await webNotificationService.notifyOrderShipped(
+            orderNumber,
+            order.buyerName,
+            targetEmail
+          );
+
         } else if (status === 'completed') {
           await affiliatorNotifications.orderCompleted(
             orderNumber,
@@ -56,11 +65,23 @@ export async function POST(req: NextRequest) {
             targetEmail
           );
 
-          // Also send commission earned notification
           const commissionRate = 0.1; // 10% commission
           const commissionAmount = Math.round(order.productPrice * commissionRate);
           
           await affiliatorNotifications.commissionEarned(
+            `Rp ${commissionAmount.toLocaleString('id-ID')}`,
+            orderNumber,
+            targetEmail
+          );
+
+          // Add web notifications
+          await webNotificationService.notifyOrderCompleted(
+            orderNumber,
+            order.buyerName,
+            targetEmail
+          );
+
+          await webNotificationService.notifyCommissionEarned(
             `Rp ${commissionAmount.toLocaleString('id-ID')}`,
             orderNumber,
             targetEmail
@@ -81,7 +102,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      console.log(`✅ Notification sent for order status update: ${orderNumber} -> ${status}`);
+      console.log(`✅ All notifications sent for order status update: ${orderNumber} -> ${status}`);
     } catch (notificationError) {
       console.error('❌ Failed to send notifications for order update:', notificationError);
     }

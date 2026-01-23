@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "@/index.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import { Toaster } from "@/components/ui/sonner";
 import { ForceNotificationPopup } from "@/components/ui/force-notification-popup";
 import { ServiceWorkerRegister } from "@/components/ui/service-worker-register";
@@ -47,11 +48,13 @@ export default function RootLayout({
     <html lang="id">
       <body className={inter.className}>
         <AuthProvider>
+        <NotificationProvider>
           <ServiceWorkerRegister />
           {children}
           <Toaster />
           <ForceNotificationPopup />
-        </AuthProvider>
+        </NotificationProvider>
+      </AuthProvider>
       </body>
     </html>
   );

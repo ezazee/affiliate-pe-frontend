@@ -4,6 +4,7 @@ import { Order, OrderStatus } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { ObjectId } from 'mongodb';
 import { adminNotifications, affiliatorNotifications } from '@/lib/notification-service-server';
+import { webNotificationService } from '@/lib/web-notification-service';
 
 
 // Helper function to generate a unique order number
@@ -93,16 +94,14 @@ export async function POST(req: NextRequest) {
 
      // Send notifications
      try {
-       // Notification to admins
+       // Push notifications
        await adminNotifications.newOrder(
          orderNumber, 
          buyerName, 
          `Rp ${totalPrice.toLocaleString('id-ID')}`
        );
 
-       // Notification to affiliator
        if (affiliator && affiliator.email) {
-         // Calculate commission (you might want to get this from product or settings)
          const commissionRate = 0.1; // 10% commission
          const commissionAmount = Math.round(productPrice * commissionRate);
          
@@ -114,7 +113,26 @@ export async function POST(req: NextRequest) {
          );
        }
 
-       console.log(`✅ Notifications sent for new order: ${orderNumber}`);
+       // Web notifications
+       await webNotificationService.notifyNewOrderAdmin(
+         orderNumber, 
+         `Rp ${totalPrice.toLocaleString('id-ID')}`,
+         buyerName
+       );
+
+       if (affiliator && affiliator.email) {
+         const commissionRate = 0.1; // 10% commission
+         const commissionAmount = Math.round(productPrice * commissionRate);
+         
+         await webNotificationService.notifyNewOrderAffiliate(
+           orderNumber,
+           buyerName,
+           `Rp ${commissionAmount.toLocaleString('id-ID')}`,
+           affiliator.email
+         );
+       }
+
+       console.log(`✅ All notifications sent for new order: ${orderNumber}`);
      } catch (notificationError) {
        console.error('❌ Failed to send notifications for order:', notificationError);
        // Continue with order creation even if notification fails

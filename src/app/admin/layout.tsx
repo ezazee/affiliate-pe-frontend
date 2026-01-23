@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { NotificationPanel } from '@/components/notification-panel';
 import { cn } from '@/lib/utils';
 
 
@@ -159,6 +160,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               Keluar
             </Button>
           </div>
+
+          {/* Notification Panel */}
+          <div className="lg:hidden fixed top-16 right-4 z-50">
+            <NotificationPanel />
+          </div>
         </div>
       </aside>
 
@@ -171,7 +177,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       )}
 
       {/* Main Content */}
-      <main className="lg:pl-64 pt-16 lg:pt-0 min-h-screen">
+        <div className="lg:pl-64 pt-16 lg:pt-0 min-h-screen">
+          {/* Desktop Notification Panel */}
+          <div className="hidden lg:block fixed top-16 right-4 z-50">
+            <NotificationPanel />
+          </div>
+        </div>
+          
+          <main>
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}

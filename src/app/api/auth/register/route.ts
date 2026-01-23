@@ -3,6 +3,7 @@ import clientPromise from '@/lib/mongodb';
 import { User, Product, AffiliateLink } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { adminNotifications } from '@/lib/notification-service-server';
+import { webNotificationService } from '@/lib/web-notification-service';
 
 
 // Function to generate a unique referral code
@@ -52,12 +53,17 @@ export async function POST(req: NextRequest) {
     const result = await db.collection('users').insertOne(userToInsert);
     const createdUser: User = { ...userToInsert, _id: result.insertedId, id: result.insertedId.toString() };
 
-    // Send notification to admins about new affiliator registration
+    // Send notifications about new affiliator registration
     try {
+      // Push notification to admins
       await adminNotifications.newAffiliator(name, email);
-      console.log(`✅ Notification sent to admins for new affiliator: ${email}`);
+      
+      // Web notification to admins
+      await webNotificationService.notifyNewAffiliate(name, email);
+      
+      console.log(`✅ Notifications sent to admins for new affiliator: ${email}`);
     } catch (notificationError) {
-      console.error('❌ Failed to send notification to admins:', notificationError);
+      console.error('❌ Failed to send notifications to admins:', notificationError);
       // Continue with registration even if notification fails
     }
 
