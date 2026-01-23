@@ -177,23 +177,26 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       )}
 
       {/* Main Content */}
-        <div className="lg:pl-64 pt-16 lg:pt-0 min-h-screen">
-          {/* Desktop Notification Panel */}
-          <div className="hidden lg:block fixed top-16 right-4 z-50">
+      <div className="lg:pl-64 pt-16 lg:pt-0 min-h-screen">
+        {/* Desktop Header */}
+        <header className="hidden lg:block fixed top-0 right-0 left-64 z-30 bg-card border-b border-border">
+          <div className="flex items-center justify-between px-6 h-16">
+            <h1 className="text-xl font-semibold text-foreground">Admin Dashboard</h1>
             <NotificationPanel />
           </div>
-        </div>
-          
-          <main>
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="p-6 lg:p-8"
-        >
-          {children}
-        </motion.div>
-      </main>
+        </header>
+        
+        <main className="pt-16 lg:pt-16">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="p-6 lg:p-8"
+          >
+            {children}
+          </motion.div>
+        </main>
+      </div>
     </div>
   );
 }
