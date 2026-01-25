@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { WebNotification, NotificationState, NotificationAction } from '@/types/notifications';
+import { useAuth } from './AuthContext';
 
 const initialState: NotificationState = {
   notifications: [],
@@ -10,8 +11,8 @@ const initialState: NotificationState = {
 };
 
 // Extended action type
-type ExtendedNotificationAction = 
-  | NotificationAction 
+type ExtendedNotificationAction =
+  | NotificationAction
   | { type: 'SET_NOTIFICATIONS'; payload: WebNotification[] };
 
 function notificationReducer(state: NotificationState, action: ExtendedNotificationAction): NotificationState {
@@ -31,7 +32,7 @@ function notificationReducer(state: NotificationState, action: ExtendedNotificat
         timestamp: new Date(),
         read: false,
       };
-      
+
       const updatedNotifications = [newNotification, ...state.notifications];
       return {
         ...state,
@@ -47,7 +48,7 @@ function notificationReducer(state: NotificationState, action: ExtendedNotificat
         timestamp: new Date(),
         read: false,
       }));
-      
+
       const updatedNotifications = [...newNotifications, ...state.notifications];
       return {
         ...state,
@@ -127,9 +128,17 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(notificationReducer, initialState);
 
+  const { user } = useAuth();
+
   const fetchNotifications = async () => {
+    if (!user?.email) return;
+
     try {
-      const response = await fetch('/api/notifications');
+      const response = await fetch('/api/notifications', {
+        headers: {
+          'x-user-email': user.email
+        }
+      });
       if (response.ok) {
         const data = await response.json();
         if (data.success && Array.isArray(data.notifications)) {
@@ -147,12 +156,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   };
 
   useEffect(() => {
-    fetchNotifications();
-    
-    // Poll every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    if (user?.email) {
+      fetchNotifications();
+
+      // Poll every 30 seconds
+      const interval = setInterval(fetchNotifications, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user?.email]);
 
   const addNotification = (notification: Omit<WebNotification, 'id' | 'timestamp' | 'read'>) => {
     dispatch({ type: 'ADD_NOTIFICATION', payload: notification });

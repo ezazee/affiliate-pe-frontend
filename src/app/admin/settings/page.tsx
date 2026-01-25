@@ -68,7 +68,7 @@ export default function SettingsPage() {
   const [isSavingWhatsApp, setIsSavingWhatsApp] = useState(false);
   const [isSavingWithdrawal, setIsSavingWithdrawal] = useState(false);
   const [isSavingRates, setIsSavingRates] = useState(false);
-const [isSavingLandingPage, setIsSavingLandingPage] = useState(false);
+  const [isSavingLandingPage, setIsSavingLandingPage] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Notification Settings
@@ -80,7 +80,7 @@ const [isSavingLandingPage, setIsSavingLandingPage] = useState(false);
     newOrderMessage: "Pesanan #{orderId} dari {customerName} dengan total {amount}",
     withdrawalRequestTitle: "💰 Permohonan Penarikan Dana",
     withdrawalRequestMessage: "{name} mengajukan penarikan sebesar {amount}",
-    
+
     // Affiliator Notifications
     newOrderAffiliateTitle: "🛒 Pesanan Baru!",
     newOrderAffiliateMessage: "Pesanan #{orderId} dari {customerName}. Komisi: {commission}",
@@ -96,7 +96,7 @@ const [isSavingLandingPage, setIsSavingLandingPage] = useState(false);
     withdrawalApprovedMessage: "Penarikan sebesar {amount} telah disetujui pada {processedAt}",
     withdrawalRejectedTitle: "❌ Penarikan Ditolak",
     withdrawalRejectedMessage: "Penarikan sebesar {amount} ditolak. Alasan: {reason}",
-    
+
     // Settings
     enableAdminNotifications: true,
     enableAffiliateNotifications: true,
@@ -198,14 +198,14 @@ const [isSavingLandingPage, setIsSavingLandingPage] = useState(false);
         } catch (error) {
           console.error("Error fetching landing page settings:", error);
         }
-        } catch (error) {
-          console.error("Settings fetch error:", error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetchSettings();
-    }, []);
+      } catch (error) {
+        console.error("Settings fetch error:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   const handleSaveAddress = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -522,7 +522,7 @@ const [isSavingLandingPage, setIsSavingLandingPage] = useState(false);
 
 
 
-return (
+  return (
     <div className="min-h-screen bg-gray-50 py-4 px-3 sm:py-6 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
@@ -551,563 +551,581 @@ return (
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="general">Umum</TabsTrigger>
               <TabsTrigger value="landing">Landing Page</TabsTrigger>
-              <TabsTrigger value="notifications">Notifikasi</TabsTrigger>
+              <TabsTrigger value="send-notification">Kirim Notifikasi</TabsTrigger>
+              <TabsTrigger value="notifications">Template Notifikasi</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="send-notification" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Send className="w-5 h-5" />
+                    Kirim Notifikasi Manual
+                  </CardTitle>
+                  <CardDescription>
+                    Kirim notifikasi push manual ke pengguna
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <PushNotificationSender />
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             <TabsContent value="general" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>Alamat Gudang</CardTitle>
-                <CardDescription>
-                  Alamat ini akan digunakan sebagai titik asal untuk perhitungan
-                  biaya pengiriman.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSaveAddress} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="warehouse-address">Alamat Lengkap</Label>
-                    <AddressAutocompleteInput
-                      value={address}
-                      onValueChange={setAddress}
-                      placeholder="Mulai ketik untuk mencari alamat..."
-                    />
-                  </div>
-                  <Button type="submit" disabled={isSavingAddress}>
-                    {isSavingAddress ? "Menyimpan..." : "Simpan Alamat"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Minimal Penarikan Dana</CardTitle>
-                <CardDescription>
-                  Atur jumlah minimal yang bisa ditarik oleh affiliator dari
-                  komisi mereka.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form
-                  onSubmit={handleSaveMinimumWithdrawal}
-                  className="space-y-4"
-                >
-                  <div className="space-y-2">
-                    <Label htmlFor="minimum-withdrawal">
-                      Minimal Penarikan (Rp)
-                    </Label>
-                    <div className="relative flex items-center">
-                      <span className="absolute left-3 text-muted-foreground">
-                        Rp
-                      </span>
-                      <Input
-                        id="minimum-withdrawal"
-                        type="number"
-                        value={minimumWithdrawal}
-                        onChange={(e) =>
-                          setMinimumWithdrawal(Number(e.target.value))
-                        }
-                        placeholder="50000"
-                        className="pl-12"
-                        min={10000}
-                        max={10000000}
-                        step={1000}
-                      />
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Minimal: Rp 10.000, Maksimal: Rp 10.000.000
-                    </p>
-                  </div>
-                  <Button type="submit" disabled={isSavingWithdrawal}>
-                    {isSavingWithdrawal
-                      ? "Menyimpan..."
-                      : "Simpan Minimal Penarikan"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Nomor WhatsApp Admin</CardTitle>
-                <CardDescription>
-                  Nomor WhatsApp ini akan digunakan untuk kontak admin di
-                  seluruh aplikasi. Gunakan format 628xxxxxxxxxx.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSaveWhatsApp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="admin-whatsapp">Nomor WhatsApp Admin</Label>
-                    <div className="relative flex items-center">
-                      <span className="absolute left-3 text-muted-foreground">
-                        62
-                      </span>
-                      <Input
-                        id="admin-whatsapp"
-                        type="tel"
-                        value={adminWhatsApp.replace(/^62/, "")}
-                        onChange={(e) =>
-                          setAdminWhatsApp(e.target.value.replace(/\D/g, ""))
-                        }
-                        placeholder="8xxxxxxxxxx"
-                        className="pl-12"
-                        pattern="[0-9]{9,13}"
-                        minLength={9}
-                        maxLength={13}
-                      />
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Contoh: 81313711180 (akan menjadi 6281313711180)
-                    </p>
-                  </div>
-                  <Button type="submit" disabled={isSavingWhatsApp}>
-                    {isSavingWhatsApp
-                      ? "Menyimpan..."
-                      : "Simpan Nomor WhatsApp"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>Kategori Biaya Pengiriman</CardTitle>
-                <CardDescription>
-                  Atur biaya berdasarkan jarak pengiriman. Biaya dihitung per
-                  kilometer dalam Rupiah (IDR).
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSaveShippingRates} className="space-y-6">
-                  <div className="grid sm:grid-cols-2 gap-6">
-                    {/* Short Distance */}
-                    <div className="space-y-2">
-                      <Label htmlFor="short_rate">
-                        Dalam Kota / Dekat (&lt; 20 km)
-                      </Label>
-                      <div className="relative flex items-center">
-                        <span className="absolute left-3 text-muted-foreground">
-                          IDR
-                        </span>
-                        <Input
-                          id="short_rate"
-                          name="short_rate"
-                          type="number"
-                          value={shippingRates.short_rate}
-                          onChange={handleRateChange}
-                          placeholder="1500"
-                          className="pl-12"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Medium Distance */}
-                    <div className="space-y-2">
-                      <Label htmlFor="medium_rate">
-                        Antar Kota (20-150 km)
-                      </Label>
-                      <div className="relative flex items-center">
-                        <span className="absolute left-3 text-muted-foreground">
-                          IDR
-                        </span>
-                        <Input
-                          id="medium_rate"
-                          name="medium_rate"
-                          type="number"
-                          value={shippingRates.medium_rate}
-                          onChange={handleRateChange}
-                          placeholder="1200"
-                          className="pl-12"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Long Distance Per KM */}
-                    <div className="space-y-2">
-                      <Label htmlFor="long_rate">
-                        Jarak Jauh (&gt; 150 km) - Biaya /km
-                      </Label>
-                      <div className="relative flex items-center">
-                        <span className="absolute left-3 text-muted-foreground">
-                          IDR
-                        </span>
-                        <Input
-                          id="long_rate"
-                          name="long_rate"
-                          type="number"
-                          value={shippingRates.long_rate}
-                          onChange={handleRateChange}
-                          placeholder="1000"
-                          className="pl-12"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Long Distance Flat */}
-                    <div className="space-y-2">
-                      <Label htmlFor="long_flat_rate">
-                        Jarak Jauh (&gt; 150 km) - Biaya Flat
-                      </Label>
-                      <div className="relative flex items-center">
-                        <span className="absolute left-3 text-muted-foreground">
-                          IDR
-                        </span>
-                        <Input
-                          id="long_flat_rate"
-                          name="long_flat_rate"
-                          type="number"
-                          value={shippingRates.long_flat_rate}
-                          onChange={handleRateChange}
-                          placeholder="50000"
-                          className="pl-12"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <Button type="submit" disabled={isSavingRates}>
-                    {isSavingRates ? "Menyimpan..." : "Simpan Biaya Pengiriman"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-
-
-
-            {/* Landing Page Settings */}
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Upload className="w-5 h-5" />
-                  Pengaturan Landing Page
-                </CardTitle>
-                <CardDescription>
-                  Kelola konten dan tampilan landing page affiliate
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSaveLandingPage} className="space-y-8">
-                  {/* Hero Section */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Hero Section</h3>
-                    <div className="grid md:grid-cols-2 gap-4">
+                <Card className="lg:col-span-2">
+                  <CardHeader>
+                    <CardTitle>Alamat Gudang</CardTitle>
+                    <CardDescription>
+                      Alamat ini akan digunakan sebagai titik asal untuk perhitungan
+                      biaya pengiriman.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleSaveAddress} className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="heroTitle">Judul Hero</Label>
-                        <Input
-                          id="heroTitle"
-                          name="heroTitle"
-                          value={landingPageSettings.heroTitle}
-                          onChange={handleLandingPageChange}
-                          placeholder="Dapatkan Penghasilan Hingga 10%"
+                        <Label htmlFor="warehouse-address">Alamat Lengkap</Label>
+                        <AddressAutocompleteInput
+                          value={address}
+                          onValueChange={setAddress}
+                          placeholder="Mulai ketik untuk mencari alamat..."
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="heroDescription">Deskripsi Hero</Label>
-                        <Textarea
-                          id="heroDescription"
-                          name="heroDescription"
-                          value={landingPageSettings.heroDescription}
-                          onChange={handleLandingPageChange}
-                          placeholder="Bergabunglah dengan program affiliate PE Skinpro dan dapatkan komisi menarik..."
-                          rows={3}
-                        />
-                      </div>
-                    </div>
-                  </div>
+                      <Button type="submit" disabled={isSavingAddress}>
+                        {isSavingAddress ? "Menyimpan..." : "Simpan Alamat"}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
 
-                  {/* About Section */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Tentang Kami</h3>
-
-                    <div className="space-y-4">
-                      {/* Judul */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Minimal Penarikan Dana</CardTitle>
+                    <CardDescription>
+                      Atur jumlah minimal yang bisa ditarik oleh affiliator dari
+                      komisi mereka.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form
+                      onSubmit={handleSaveMinimumWithdrawal}
+                      className="space-y-4"
+                    >
                       <div className="space-y-2">
-                        <Label htmlFor="aboutTitle">Judul Tentang Kami</Label>
-                        <Input
-                          id="aboutTitle"
-                          name="aboutTitle"
-                          value={landingPageSettings.aboutTitle}
-                          onChange={handleLandingPageChange}
-                          placeholder="Tentang PE Skinpro"
-                        />
-                      </div>
-
-                      {/* Deskripsi */}
-                      <div className="space-y-2">
-                        <Label htmlFor="aboutDescription">
-                          Deskripsi Tentang Kami
+                        <Label htmlFor="minimum-withdrawal">
+                          Minimal Penarikan (Rp)
                         </Label>
-                        <Textarea
-                          id="aboutDescription"
-                          name="aboutDescription"
-                          value={landingPageSettings.aboutDescription}
-                          onChange={handleLandingPageChange}
-                          placeholder="PE Skin Professional didirikan pada satu dekade yang lalu..."
-                          rows={4}
-                        />
+                        <div className="relative flex items-center">
+                          <span className="absolute left-3 text-muted-foreground">
+                            Rp
+                          </span>
+                          <Input
+                            id="minimum-withdrawal"
+                            type="number"
+                            value={minimumWithdrawal}
+                            onChange={(e) =>
+                              setMinimumWithdrawal(Number(e.target.value))
+                            }
+                            placeholder="50000"
+                            className="pl-12"
+                            min={10000}
+                            max={10000000}
+                            step={1000}
+                          />
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Minimal: Rp 10.000, Maksimal: Rp 10.000.000
+                        </p>
                       </div>
+                      <Button type="submit" disabled={isSavingWithdrawal}>
+                        {isSavingWithdrawal
+                          ? "Menyimpan..."
+                          : "Simpan Minimal Penarikan"}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
 
-                      {/* Gambar */}
-                      <div className="space-y-4">
-                        <Label>Gambar Tentang Kami</Label>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Nomor WhatsApp Admin</CardTitle>
+                    <CardDescription>
+                      Nomor WhatsApp ini akan digunakan untuk kontak admin di
+                      seluruh aplikasi. Gunakan format 628xxxxxxxxxx.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleSaveWhatsApp} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="admin-whatsapp">Nomor WhatsApp Admin</Label>
+                        <div className="relative flex items-center">
+                          <span className="absolute left-3 text-muted-foreground">
+                            62
+                          </span>
+                          <Input
+                            id="admin-whatsapp"
+                            type="tel"
+                            value={adminWhatsApp.replace(/^62/, "")}
+                            onChange={(e) =>
+                              setAdminWhatsApp(e.target.value.replace(/\D/g, ""))
+                            }
+                            placeholder="8xxxxxxxxxx"
+                            className="pl-12"
+                            pattern="[0-9]{9,13}"
+                            minLength={9}
+                            maxLength={13}
+                          />
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Contoh: 81313711180 (akan menjadi 6281313711180)
+                        </p>
+                      </div>
+                      <Button type="submit" disabled={isSavingWhatsApp}>
+                        {isSavingWhatsApp
+                          ? "Menyimpan..."
+                          : "Simpan Nomor WhatsApp"}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
 
-                        {/* Preview Image */}
-                        {landingPageSettings.aboutImage && (
-                          <div className="relative">
-                            <div className="rounded-lg overflow-hidden border border-border">
-                              <img
-                                src={landingPageSettings.aboutImage}
-                                alt="Tentang Kami"
-                                className="w-full h-64 object-cover object-center"
-                                onError={(e) => {
-                                  const target = e.currentTarget;
-                                  target.style.display = "none";
-                                  target.nextElementSibling?.classList.remove(
-                                    "hidden"
-                                  );
-                                }}
-                              />
-                              <div className="hidden h-64 bg-secondary/50 flex items-center justify-center">
-                                <div className="text-center">
-                                  <Image className="w-12 h-12 mx-auto mb-2 text-muted-foreground" />
-                                  <p className="text-muted-foreground">
-                                    Gambar tidak dapat dimuat
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="sm"
-                              className="absolute top-2 right-2"
-                              onClick={() => {
-                                setLandingPageSettings((prev) => ({
-                                  ...prev,
-                                  aboutImage: "",
-                                }));
-                                console.log("Gambar dihapus");
-                              }}
-                            >
-                              Hapus
-                            </Button>
-                          </div>
-                        )}
-
-                        {/* Upload Section */}
-                        <div className="border-2 border-dashed border-border rounded-lg p-6">
-                          {/* ICON + TEXT (CENTER) */}
-                          <div className="flex flex-col items-center justify-center text-center min-h-[180px]">
-                            <Image className="w-14 h-14 text-muted-foreground mb-4" />
-                            <p className="text-sm text-muted-foreground">
-                              Upload gambar baru atau masukkan URL
-                            </p>
-                          </div>
-
-                          {/* INPUT & BUTTON */}
-                          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Card className="lg:col-span-2">
+                  <CardHeader>
+                    <CardTitle>Kategori Biaya Pengiriman</CardTitle>
+                    <CardDescription>
+                      Atur biaya berdasarkan jarak pengiriman. Biaya dihitung per
+                      kilometer dalam Rupiah (IDR).
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleSaveShippingRates} className="space-y-6">
+                      <div className="grid sm:grid-cols-2 gap-6">
+                        {/* Short Distance */}
+                        <div className="space-y-2">
+                          <Label htmlFor="short_rate">
+                            Dalam Kota / Dekat (&lt; 20 km)
+                          </Label>
+                          <div className="relative flex items-center">
+                            <span className="absolute left-3 text-muted-foreground">
+                              IDR
+                            </span>
                             <Input
-                              id="aboutImage"
-                              name="aboutImage"
-                              value={landingPageSettings.aboutImage}
-                              onChange={handleLandingPageChange}
-                              placeholder="https://example.com/image.jpg"
-                              className="font-mono text-xs sm:text-sm h-10 sm:h-12 w-full sm:max-w-sm"
-                            />
-
-                            <label
-                              htmlFor="file-input"
-                              className="cursor-pointer"
-                            >
-                              <Button
-                                type="button"
-                                variant="outline"
-                                disabled={isUploadingImage}
-                                asChild
-                              >
-                                <span>
-                                  {isUploadingImage
-                                    ? "Mengupload..."
-                                    : "Pilih File"}
-                                </span>
-                              </Button>
-                            </label>
-
-                            <input
-                              id="file-input"
-                              type="file"
-                              accept="image/*"
-                              onChange={handleImageUpload}
-                              className="hidden"
+                              id="short_rate"
+                              name="short_rate"
+                              type="number"
+                              value={shippingRates.short_rate}
+                              onChange={handleRateChange}
+                              placeholder="1500"
+                              className="pl-12"
                             />
                           </div>
+                        </div>
 
-                          {/* Loading */}
-                          {isUploadingImage && (
-                            <div className="flex items-center justify-center gap-3 py-6">
-                              <div className="flex space-x-1">
-                                <div className="w-3 h-3 bg-primary rounded-full animate-bounce" />
-                                <div
-                                  className="w-3 h-3 bg-primary rounded-full animate-bounce"
-                                  style={{ animationDelay: "0.1s" }}
-                                />
-                                <div
-                                  className="w-3 h-3 bg-primary rounded-full animate-bounce"
-                                  style={{ animationDelay: "0.2s" }}
-                                />
-                              </div>
-                              <span className="text-sm text-primary">
-                                Mengupload...
-                              </span>
-                            </div>
-                          )}
+                        {/* Medium Distance */}
+                        <div className="space-y-2">
+                          <Label htmlFor="medium_rate">
+                            Antar Kota (20-150 km)
+                          </Label>
+                          <div className="relative flex items-center">
+                            <span className="absolute left-3 text-muted-foreground">
+                              IDR
+                            </span>
+                            <Input
+                              id="medium_rate"
+                              name="medium_rate"
+                              type="number"
+                              value={shippingRates.medium_rate}
+                              onChange={handleRateChange}
+                              placeholder="1200"
+                              className="pl-12"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Long Distance Per KM */}
+                        <div className="space-y-2">
+                          <Label htmlFor="long_rate">
+                            Jarak Jauh (&gt; 150 km) - Biaya /km
+                          </Label>
+                          <div className="relative flex items-center">
+                            <span className="absolute left-3 text-muted-foreground">
+                              IDR
+                            </span>
+                            <Input
+                              id="long_rate"
+                              name="long_rate"
+                              type="number"
+                              value={shippingRates.long_rate}
+                              onChange={handleRateChange}
+                              placeholder="1000"
+                              className="pl-12"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Long Distance Flat */}
+                        <div className="space-y-2">
+                          <Label htmlFor="long_flat_rate">
+                            Jarak Jauh (&gt; 150 km) - Biaya Flat
+                          </Label>
+                          <div className="relative flex items-center">
+                            <span className="absolute left-3 text-muted-foreground">
+                              IDR
+                            </span>
+                            <Input
+                              id="long_flat_rate"
+                              name="long_flat_rate"
+                              type="number"
+                              value={shippingRates.long_flat_rate}
+                              onChange={handleRateChange}
+                              placeholder="50000"
+                              className="pl-12"
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
+                      <Button type="submit" disabled={isSavingRates}>
+                        {isSavingRates ? "Menyimpan..." : "Simpan Biaya Pengiriman"}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
 
-                  {/* Contact & Social Media */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">
-                      Kontak & Media Sosial
-                    </h3>
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="instagramUrl"
-                          className="flex items-center gap-2"
-                        >
-                          <Instagram className="w-4 h-4" />
-                          Instagram URL
-                        </Label>
-                        <Input
-                          id="instagramUrl"
-                          name="instagramUrl"
-                          value={landingPageSettings.instagramUrl}
-                          onChange={handleLandingPageChange}
-                          placeholder="https://www.instagram.com/peskinproid"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="tiktokUrl"
-                          className="flex items-center gap-2"
-                        >
-                          <MessageCircle className="w-4 h-4" />
-                          TikTok URL
-                        </Label>
-                        <Input
-                          id="tiktokUrl"
-                          name="tiktokUrl"
-                          value={landingPageSettings.tiktokUrl}
-                          onChange={handleLandingPageChange}
-                          placeholder="https://www.tiktok.com/@peskinproid"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="shopeeUrl"
-                          className="flex items-center gap-2"
-                        >
-                          <ShoppingBag className="w-4 h-4" />
-                          Shopee URL
-                        </Label>
-                        <Input
-                          id="shopeeUrl"
-                          name="shopeeUrl"
-                          value={landingPageSettings.shopeeUrl}
-                          onChange={handleLandingPageChange}
-                          placeholder="https://shopee.co.id/peskinpro_id"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="websiteUrl"
-                          className="flex items-center gap-2"
-                        >
-                          <Globe className="w-4 h-4" />
-                          Website URL
-                        </Label>
-                        <Input
-                          id="websiteUrl"
-                          name="websiteUrl"
-                          value={landingPageSettings.websiteUrl}
-                          onChange={handleLandingPageChange}
-                          placeholder="https://peskinpro.id"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="whatsappNumber"
-                          className="flex items-center gap-2"
-                        >
-                          <Phone className="w-4 h-4" />
-                          Nomor WhatsApp
-                        </Label>
-                        <Input
-                          id="whatsappNumber"
-                          name="whatsappNumber"
-                          value={landingPageSettings.whatsappNumber}
-                          onChange={handleLandingPageChange}
-                          placeholder="0821-2316-7895"
-                        />
-                      </div>
-                      <div className="space-y-2 md:col-span-3">
-                        <Label
-                          htmlFor="email"
-                          className="flex items-center gap-2"
-                        >
-                          <Mail className="w-4 h-4" />
-                          Email
-                        </Label>
-                        <Input
-                          id="email"
-                          name="email"
-                          type="email"
-                          value={landingPageSettings.email}
-                          onChange={handleLandingPageChange}
-                          placeholder="adm.peskinproid@gmail.com"
-                          className="md:max-w-md"
-                        />
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Footer Description */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">
-                      Footer Description
-                    </h3>
-                    <div className="space-y-2">
-                      <Label htmlFor="footerDescription">
-                        Deskripsi Footer
-                      </Label>
-                      <Textarea
-                        id="footerDescription"
-                        name="footerDescription"
-                        value={landingPageSettings.footerDescription}
-                        onChange={handleLandingPageChange}
-                        placeholder="Program affiliate resmi PE Skinpro. Dapatkan komisi menarik dari setiap penjualan produk skincare berkualitas."
-                        rows={2}
-                      />
-                    </div>
-                  </div>
 
-                  <Button
-                    type="submit"
-                    disabled={isSavingLandingPage}
-                    className="w-full md:w-auto"
-                  >
-                    {isSavingLandingPage
-                      ? "Menyimpan..."
-                      : "Simpan Pengaturan Landing Page"}
-                  </Button>
-                </form>
-              </CardContent>
-</Card>
+                {/* Landing Page Settings */}
+                <Card className="lg:col-span-2">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Upload className="w-5 h-5" />
+                      Pengaturan Landing Page
+                    </CardTitle>
+                    <CardDescription>
+                      Kelola konten dan tampilan landing page affiliate
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleSaveLandingPage} className="space-y-8">
+                      {/* Hero Section */}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold">Hero Section</h3>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="heroTitle">Judul Hero</Label>
+                            <Input
+                              id="heroTitle"
+                              name="heroTitle"
+                              value={landingPageSettings.heroTitle}
+                              onChange={handleLandingPageChange}
+                              placeholder="Dapatkan Penghasilan Hingga 10%"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="heroDescription">Deskripsi Hero</Label>
+                            <Textarea
+                              id="heroDescription"
+                              name="heroDescription"
+                              value={landingPageSettings.heroDescription}
+                              onChange={handleLandingPageChange}
+                              placeholder="Bergabunglah dengan program affiliate PE Skinpro dan dapatkan komisi menarik..."
+                              rows={3}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* About Section */}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold">Tentang Kami</h3>
+
+                        <div className="space-y-4">
+                          {/* Judul */}
+                          <div className="space-y-2">
+                            <Label htmlFor="aboutTitle">Judul Tentang Kami</Label>
+                            <Input
+                              id="aboutTitle"
+                              name="aboutTitle"
+                              value={landingPageSettings.aboutTitle}
+                              onChange={handleLandingPageChange}
+                              placeholder="Tentang PE Skinpro"
+                            />
+                          </div>
+
+                          {/* Deskripsi */}
+                          <div className="space-y-2">
+                            <Label htmlFor="aboutDescription">
+                              Deskripsi Tentang Kami
+                            </Label>
+                            <Textarea
+                              id="aboutDescription"
+                              name="aboutDescription"
+                              value={landingPageSettings.aboutDescription}
+                              onChange={handleLandingPageChange}
+                              placeholder="PE Skin Professional didirikan pada satu dekade yang lalu..."
+                              rows={4}
+                            />
+                          </div>
+
+                          {/* Gambar */}
+                          <div className="space-y-4">
+                            <Label>Gambar Tentang Kami</Label>
+
+                            {/* Preview Image */}
+                            {landingPageSettings.aboutImage && (
+                              <div className="relative">
+                                <div className="rounded-lg overflow-hidden border border-border">
+                                  <img
+                                    src={landingPageSettings.aboutImage}
+                                    alt="Tentang Kami"
+                                    className="w-full h-64 object-cover object-center"
+                                    onError={(e) => {
+                                      const target = e.currentTarget;
+                                      target.style.display = "none";
+                                      target.nextElementSibling?.classList.remove(
+                                        "hidden"
+                                      );
+                                    }}
+                                  />
+                                  <div className="hidden h-64 bg-secondary/50 flex items-center justify-center">
+                                    <div className="text-center">
+                                      <Image className="w-12 h-12 mx-auto mb-2 text-muted-foreground" />
+                                      <p className="text-muted-foreground">
+                                        Gambar tidak dapat dimuat
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="sm"
+                                  className="absolute top-2 right-2"
+                                  onClick={() => {
+                                    setLandingPageSettings((prev) => ({
+                                      ...prev,
+                                      aboutImage: "",
+                                    }));
+                                    console.log("Gambar dihapus");
+                                  }}
+                                >
+                                  Hapus
+                                </Button>
+                              </div>
+                            )}
+
+                            {/* Upload Section */}
+                            <div className="border-2 border-dashed border-border rounded-lg p-6">
+                              {/* ICON + TEXT (CENTER) */}
+                              <div className="flex flex-col items-center justify-center text-center min-h-[180px]">
+                                <Image className="w-14 h-14 text-muted-foreground mb-4" />
+                                <p className="text-sm text-muted-foreground">
+                                  Upload gambar baru atau masukkan URL
+                                </p>
+                              </div>
+
+                              {/* INPUT & BUTTON */}
+                              <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
+                                <Input
+                                  id="aboutImage"
+                                  name="aboutImage"
+                                  value={landingPageSettings.aboutImage}
+                                  onChange={handleLandingPageChange}
+                                  placeholder="https://example.com/image.jpg"
+                                  className="font-mono text-xs sm:text-sm h-10 sm:h-12 w-full sm:max-w-sm"
+                                />
+
+                                <label
+                                  htmlFor="file-input"
+                                  className="cursor-pointer"
+                                >
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={isUploadingImage}
+                                    asChild
+                                  >
+                                    <span>
+                                      {isUploadingImage
+                                        ? "Mengupload..."
+                                        : "Pilih File"}
+                                    </span>
+                                  </Button>
+                                </label>
+
+                                <input
+                                  id="file-input"
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleImageUpload}
+                                  className="hidden"
+                                />
+                              </div>
+
+                              {/* Loading */}
+                              {isUploadingImage && (
+                                <div className="flex items-center justify-center gap-3 py-6">
+                                  <div className="flex space-x-1">
+                                    <div className="w-3 h-3 bg-primary rounded-full animate-bounce" />
+                                    <div
+                                      className="w-3 h-3 bg-primary rounded-full animate-bounce"
+                                      style={{ animationDelay: "0.1s" }}
+                                    />
+                                    <div
+                                      className="w-3 h-3 bg-primary rounded-full animate-bounce"
+                                      style={{ animationDelay: "0.2s" }}
+                                    />
+                                  </div>
+                                  <span className="text-sm text-primary">
+                                    Mengupload...
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Contact & Social Media */}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold">
+                          Kontak & Media Sosial
+                        </h3>
+                        <div className="grid md:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label
+                              htmlFor="instagramUrl"
+                              className="flex items-center gap-2"
+                            >
+                              <Instagram className="w-4 h-4" />
+                              Instagram URL
+                            </Label>
+                            <Input
+                              id="instagramUrl"
+                              name="instagramUrl"
+                              value={landingPageSettings.instagramUrl}
+                              onChange={handleLandingPageChange}
+                              placeholder="https://www.instagram.com/peskinproid"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label
+                              htmlFor="tiktokUrl"
+                              className="flex items-center gap-2"
+                            >
+                              <MessageCircle className="w-4 h-4" />
+                              TikTok URL
+                            </Label>
+                            <Input
+                              id="tiktokUrl"
+                              name="tiktokUrl"
+                              value={landingPageSettings.tiktokUrl}
+                              onChange={handleLandingPageChange}
+                              placeholder="https://www.tiktok.com/@peskinproid"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label
+                              htmlFor="shopeeUrl"
+                              className="flex items-center gap-2"
+                            >
+                              <ShoppingBag className="w-4 h-4" />
+                              Shopee URL
+                            </Label>
+                            <Input
+                              id="shopeeUrl"
+                              name="shopeeUrl"
+                              value={landingPageSettings.shopeeUrl}
+                              onChange={handleLandingPageChange}
+                              placeholder="https://shopee.co.id/peskinpro_id"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label
+                              htmlFor="websiteUrl"
+                              className="flex items-center gap-2"
+                            >
+                              <Globe className="w-4 h-4" />
+                              Website URL
+                            </Label>
+                            <Input
+                              id="websiteUrl"
+                              name="websiteUrl"
+                              value={landingPageSettings.websiteUrl}
+                              onChange={handleLandingPageChange}
+                              placeholder="https://peskinpro.id"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label
+                              htmlFor="whatsappNumber"
+                              className="flex items-center gap-2"
+                            >
+                              <Phone className="w-4 h-4" />
+                              Nomor WhatsApp
+                            </Label>
+                            <Input
+                              id="whatsappNumber"
+                              name="whatsappNumber"
+                              value={landingPageSettings.whatsappNumber}
+                              onChange={handleLandingPageChange}
+                              placeholder="0821-2316-7895"
+                            />
+                          </div>
+                          <div className="space-y-2 md:col-span-3">
+                            <Label
+                              htmlFor="email"
+                              className="flex items-center gap-2"
+                            >
+                              <Mail className="w-4 h-4" />
+                              Email
+                            </Label>
+                            <Input
+                              id="email"
+                              name="email"
+                              type="email"
+                              value={landingPageSettings.email}
+                              onChange={handleLandingPageChange}
+                              placeholder="adm.peskinproid@gmail.com"
+                              className="md:max-w-md"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Footer Description */}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold">
+                          Footer Description
+                        </h3>
+                        <div className="space-y-2">
+                          <Label htmlFor="footerDescription">
+                            Deskripsi Footer
+                          </Label>
+                          <Textarea
+                            id="footerDescription"
+                            name="footerDescription"
+                            value={landingPageSettings.footerDescription}
+                            onChange={handleLandingPageChange}
+                            placeholder="Program affiliate resmi PE Skinpro. Dapatkan komisi menarik dari setiap penjualan produk skincare berkualitas."
+                            rows={2}
+                          />
+                        </div>
+                      </div>
+
+                      <Button
+                        type="submit"
+                        disabled={isSavingLandingPage}
+                        className="w-full md:w-auto"
+                      >
+                        {isSavingLandingPage
+                          ? "Menyimpan..."
+                          : "Simpan Pengaturan Landing Page"}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
 
@@ -1472,7 +1490,7 @@ return (
                           <Switch
                             id="enableAdminNotifications"
                             checked={notificationSettings.enableAdminNotifications}
-                            onCheckedChange={(checked) => 
+                            onCheckedChange={(checked) =>
                               setNotificationSettings(prev => ({ ...prev, enableAdminNotifications: checked }))
                             }
                           />
@@ -1485,7 +1503,7 @@ return (
                           <Switch
                             id="enableAffiliateNotifications"
                             checked={notificationSettings.enableAffiliateNotifications}
-                            onCheckedChange={(checked) => 
+                            onCheckedChange={(checked) =>
                               setNotificationSettings(prev => ({ ...prev, enableAffiliateNotifications: checked }))
                             }
                           />
@@ -1498,7 +1516,7 @@ return (
                           <Switch
                             id="enableEmailNotifications"
                             checked={notificationSettings.enableEmailNotifications}
-                            onCheckedChange={(checked) => 
+                            onCheckedChange={(checked) =>
                               setNotificationSettings(prev => ({ ...prev, enableEmailNotifications: checked }))
                             }
                           />
@@ -1511,7 +1529,7 @@ return (
                           <Switch
                             id="enablePushNotifications"
                             checked={notificationSettings.enablePushNotifications}
-                            onCheckedChange={(checked) => 
+                            onCheckedChange={(checked) =>
                               setNotificationSettings(prev => ({ ...prev, enablePushNotifications: checked }))
                             }
                           />
@@ -1528,7 +1546,7 @@ return (
                           <Input
                             id="newAffiliateTitle"
                             value={notificationSettings.newAffiliateTitle}
-                            onChange={(e) => 
+                            onChange={(e) =>
                               setNotificationSettings(prev => ({ ...prev, newAffiliateTitle: e.target.value }))
                             }
                             placeholder="👋 Affiliator Baru Mendaftar!"
@@ -1539,7 +1557,7 @@ return (
                           <Input
                             id="newAffiliateMessage"
                             value={notificationSettings.newAffiliateMessage}
-                            onChange={(e) => 
+                            onChange={(e) =>
                               setNotificationSettings(prev => ({ ...prev, newAffiliateMessage: e.target.value }))
                             }
                             placeholder="{name} ({email}) baru saja mendaftar sebagai affiliator."
@@ -1550,7 +1568,7 @@ return (
                           <Input
                             id="newOrderTitle"
                             value={notificationSettings.newOrderTitle}
-                            onChange={(e) => 
+                            onChange={(e) =>
                               setNotificationSettings(prev => ({ ...prev, newOrderTitle: e.target.value }))
                             }
                             placeholder="🛒 Pesanan Baru!"
@@ -1561,7 +1579,7 @@ return (
                           <Input
                             id="newOrderMessage"
                             value={notificationSettings.newOrderMessage}
-                            onChange={(e) => 
+                            onChange={(e) =>
                               setNotificationSettings(prev => ({ ...prev, newOrderMessage: e.target.value }))
                             }
                             placeholder="Pesanan #{orderId} dari {customerName} dengan total {amount}"
@@ -1572,7 +1590,7 @@ return (
                           <Input
                             id="withdrawalRequestTitle"
                             value={notificationSettings.withdrawalRequestTitle}
-                            onChange={(e) => 
+                            onChange={(e) =>
                               setNotificationSettings(prev => ({ ...prev, withdrawalRequestTitle: e.target.value }))
                             }
                             placeholder="💰 Permohonan Penarikan Dana"
@@ -1583,7 +1601,7 @@ return (
                           <Input
                             id="withdrawalRequestMessage"
                             value={notificationSettings.withdrawalRequestMessage}
-                            onChange={(e) => 
+                            onChange={(e) =>
                               setNotificationSettings(prev => ({ ...prev, withdrawalRequestMessage: e.target.value }))
                             }
                             placeholder="{name} mengajukan penarikan sebesar {amount}"
@@ -1601,7 +1619,7 @@ return (
                           <Input
                             id="newOrderAffiliateTitle"
                             value={notificationSettings.newOrderAffiliateTitle}
-                            onChange={(e) => 
+                            onChange={(e) =>
                               setNotificationSettings(prev => ({ ...prev, newOrderAffiliateTitle: e.target.value }))
                             }
                             placeholder="🛒 Pesanan Baru!"
@@ -1612,7 +1630,7 @@ return (
                           <Input
                             id="newOrderAffiliateMessage"
                             value={notificationSettings.newOrderAffiliateMessage}
-                            onChange={(e) => 
+                            onChange={(e) =>
                               setNotificationSettings(prev => ({ ...prev, newOrderAffiliateMessage: e.target.value }))
                             }
                             placeholder="Pesanan #{orderId} dari {customerName}. Komisi: {commission}"
@@ -1623,7 +1641,7 @@ return (
                           <Input
                             id="orderShippedTitle"
                             value={notificationSettings.orderShippedTitle}
-                            onChange={(e) => 
+                            onChange={(e) =>
                               setNotificationSettings(prev => ({ ...prev, orderShippedTitle: e.target.value }))
                             }
                             placeholder="📦 Pesanan Dikirim"
@@ -1634,7 +1652,7 @@ return (
                           <Input
                             id="orderShippedMessage"
                             value={notificationSettings.orderShippedMessage}
-                            onChange={(e) => 
+                            onChange={(e) =>
                               setNotificationSettings(prev => ({ ...prev, orderShippedMessage: e.target.value }))
                             }
                             placeholder="Pesanan #{orderId} untuk {customerName} telah dikirim"
@@ -1645,7 +1663,7 @@ return (
                           <Input
                             id="orderCompletedTitle"
                             value={notificationSettings.orderCompletedTitle}
-                            onChange={(e) => 
+                            onChange={(e) =>
                               setNotificationSettings(prev => ({ ...prev, orderCompletedTitle: e.target.value }))
                             }
                             placeholder="✅ Pesanan Selesai"
@@ -1656,7 +1674,7 @@ return (
                           <Input
                             id="orderCompletedMessage"
                             value={notificationSettings.orderCompletedMessage}
-                            onChange={(e) => 
+                            onChange={(e) =>
                               setNotificationSettings(prev => ({ ...prev, orderCompletedMessage: e.target.value }))
                             }
                             placeholder="Pesanan #{orderId} untuk {customerName} telah selesai. Komisi telah ditambahkan!"
@@ -1667,7 +1685,7 @@ return (
                           <Input
                             id="commissionEarnedTitle"
                             value={notificationSettings.commissionEarnedTitle}
-                            onChange={(e) => 
+                            onChange={(e) =>
                               setNotificationSettings(prev => ({ ...prev, commissionEarnedTitle: e.target.value }))
                             }
                             placeholder="💵 Pemasukan Komisi!"
@@ -1678,7 +1696,7 @@ return (
                           <Input
                             id="commissionEarnedMessage"
                             value={notificationSettings.commissionEarnedMessage}
-                            onChange={(e) => 
+                            onChange={(e) =>
                               setNotificationSettings(prev => ({ ...prev, commissionEarnedMessage: e.target.value }))
                             }
                             placeholder="Komisi sebesar {amount} dari pesanan #{orderId} telah ditambahkan ke akun Anda"
@@ -1689,7 +1707,7 @@ return (
                           <Input
                             id="balanceUpdatedTitle"
                             value={notificationSettings.balanceUpdatedTitle}
-                            onChange={(e) => 
+                            onChange={(e) =>
                               setNotificationSettings(prev => ({ ...prev, balanceUpdatedTitle: e.target.value }))
                             }
                             placeholder="💰 Saldo Dapat Ditarik Diperbarui"
@@ -1700,7 +1718,7 @@ return (
                           <Input
                             id="balanceUpdatedMessage"
                             value={notificationSettings.balanceUpdatedMessage}
-                            onChange={(e) => 
+                            onChange={(e) =>
                               setNotificationSettings(prev => ({ ...prev, balanceUpdatedMessage: e.target.value }))
                             }
                             placeholder="Saldo yang dapat ditarik: {availableBalance}"
@@ -1711,7 +1729,7 @@ return (
                           <Input
                             id="withdrawalApprovedTitle"
                             value={notificationSettings.withdrawalApprovedTitle}
-                            onChange={(e) => 
+                            onChange={(e) =>
                               setNotificationSettings(prev => ({ ...prev, withdrawalApprovedTitle: e.target.value }))
                             }
                             placeholder="✅ Penarikan Disetujui"
@@ -1722,7 +1740,7 @@ return (
                           <Input
                             id="withdrawalApprovedMessage"
                             value={notificationSettings.withdrawalApprovedMessage}
-                            onChange={(e) => 
+                            onChange={(e) =>
                               setNotificationSettings(prev => ({ ...prev, withdrawalApprovedMessage: e.target.value }))
                             }
                             placeholder="Penarikan sebesar {amount} telah disetujui pada {processedAt}"
@@ -1733,7 +1751,7 @@ return (
                           <Input
                             id="withdrawalRejectedTitle"
                             value={notificationSettings.withdrawalRejectedTitle}
-                            onChange={(e) => 
+                            onChange={(e) =>
                               setNotificationSettings(prev => ({ ...prev, withdrawalRejectedTitle: e.target.value }))
                             }
                             placeholder="❌ Penarikan Ditolak"
@@ -1744,7 +1762,7 @@ return (
                           <Input
                             id="withdrawalRejectedMessage"
                             value={notificationSettings.withdrawalRejectedMessage}
-                            onChange={(e) => 
+                            onChange={(e) =>
                               setNotificationSettings(prev => ({ ...prev, withdrawalRejectedMessage: e.target.value }))
                             }
                             placeholder="Penarikan sebesar {amount} ditolak. Alasan: {reason}"
@@ -1760,21 +1778,6 @@ return (
                 </CardContent>
               </Card>
 
-              {/* Manual Push Notification Sender */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Send className="w-5 h-5" />
-                    Kirim Notifikasi Manual
-                  </CardTitle>
-                  <CardDescription>
-                    Kirim notifikasi push manual ke pengguna
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <PushNotificationSender />
-                </CardContent>
-              </Card>
             </TabsContent>
           </Tabs>
         )}
