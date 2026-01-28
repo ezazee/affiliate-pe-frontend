@@ -126,7 +126,7 @@ export function NotificationPanel({ className }: NotificationPanelProps) {
         {state.unreadCount > 0 && (
           <Badge
             variant="destructive"
-            className="hidden md:block absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 flex items-center justify-center text-xs font-bold border-2 border-background"
+            className="hidden md:flex absolute -top-2 -right-2 min-w-[1.25rem] h-5 px-1 rounded-full items-center justify-center text-[10px] font-bold border-2 border-background shadow-sm"
           >
             {state.unreadCount > 99 ? '99+' : state.unreadCount}
           </Badge>
@@ -136,7 +136,7 @@ export function NotificationPanel({ className }: NotificationPanelProps) {
         {state.unreadCount > 0 && (
           <Badge
             variant="destructive"
-            className="md:hidden absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px] font-bold border-2 border-background"
+            className="md:hidden flex absolute -top-1 -right-1 min-w-[1.25rem] h-5 px-1 rounded-full items-center justify-center text-[10px] font-bold border-2 border-background shadow-sm"
           >
             {state.unreadCount > 99 ? '99+' : state.unreadCount}
           </Badge>
