@@ -1,7 +1,7 @@
 require('dotenv').config({ path: '.env.local' });
 const { MongoClient } = require('mongodb');
 const bcrypt = require('bcryptjs');
-const { products, users } = require('./data.cjs');
+const { products, users, settings } = require('./data.cjs');
 
 
 const uri = process.env.MONGODB_URI;
@@ -85,6 +85,10 @@ const seed = async () => {
       console.log(`Seeding ${newAffiliateLinks.length} affiliate links...`);
       await db.collection('affiliateLinks').insertMany(newAffiliateLinks);
     }
+
+    console.log(`Seeding ${settings.length} settings...`);
+    await db.collection('settings').deleteMany({}); // Ensure settings are fresh
+    await db.collection('settings').insertMany(settings);
 
     console.log('Seeding completed successfully!');
 

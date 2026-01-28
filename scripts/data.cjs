@@ -97,7 +97,16 @@ const users = [
   },
 ];
 
+const settings = [
+  { name: 'warehouseAddress', value: 'Jl. Pemuda No. 1, Rawamangun, Jakarta Timur, DKI Jakarta' },
+  { name: 'short_rate', value: 2500 },
+  { name: 'medium_rate', value: 3000 },
+  { name: 'long_rate', value: 3500 },
+  { name: 'long_flat_rate', value: 15000 },
+];
+
 module.exports = {
   products,
   users,
+  settings,
 };
