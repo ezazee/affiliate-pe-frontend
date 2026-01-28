@@ -2,16 +2,16 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Bell, 
-  BellRing, 
-  Check, 
-  X, 
-  Info, 
-  CheckCircle, 
-  AlertCircle, 
+import {
+  Bell,
+  BellRing,
+  Check,
+  X,
+  Info,
+  CheckCircle,
+  AlertCircle,
   XCircle,
-  ExternalLink
+
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -64,24 +64,18 @@ interface NotificationPanelProps {
 }
 
 export function NotificationPanel({ className }: NotificationPanelProps) {
-  const { 
-    state, 
-    markAsRead, 
-    markAllAsRead, 
-    removeNotification, 
-    clearAll, 
-    togglePanel 
+  const {
+    state,
+    markAsRead,
+    markAllAsRead,
+    removeNotification,
+    clearAll,
+    togglePanel
   } = useNotifications();
 
   const handleNotificationClick = (notification: WebNotification) => {
     if (!notification.read) {
       markAsRead(notification.id);
-    }
-    
-    if (notification.actionUrl) {
-      window.location.href = notification.actionUrl;
-    } else if (notification.url) {
-      window.location.href = notification.url;
     }
   };
 
@@ -105,12 +99,12 @@ export function NotificationPanel({ className }: NotificationPanelProps) {
           ) : (
             <Bell className="w-5 h-5" />
           )}
-          
+
           {state.unreadCount > 0 && (
             <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full animate-ping" />
           )}
         </Button>
-        
+
         {/* Mobile Notification Button */}
         <Button
           variant="ghost"
@@ -123,25 +117,25 @@ export function NotificationPanel({ className }: NotificationPanelProps) {
           ) : (
             <Bell className="w-6 h-6" />
           )}
-          
+
           {state.unreadCount > 0 && (
             <span className="absolute top-1 right-1 h-3 w-3 bg-red-500 rounded-full animate-ping" />
           )}
         </Button>
-        
+
         {state.unreadCount > 0 && (
-          <Badge 
-            variant="destructive" 
+          <Badge
+            variant="destructive"
             className="hidden md:block absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 flex items-center justify-center text-xs font-bold border-2 border-background"
           >
             {state.unreadCount > 99 ? '99+' : state.unreadCount}
           </Badge>
         )}
-        
+
         {/* Mobile Badge */}
         {state.unreadCount > 0 && (
-          <Badge 
-            variant="destructive" 
+          <Badge
+            variant="destructive"
             className="md:hidden absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px] font-bold border-2 border-background"
           >
             {state.unreadCount > 99 ? '99+' : state.unreadCount}
@@ -206,16 +200,15 @@ export function NotificationPanel({ className }: NotificationPanelProps) {
                           initial={{ opacity: 0, x: 20 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -20 }}
-                          className={`mb-2 p-3 rounded-lg border cursor-pointer transition-colors ${getNotificationBg(notification.type)} ${
-                            !notification.read ? 'font-semibold' : ''
-                          }`}
+                          className={`mb-2 p-3 rounded-lg border transition-colors ${getNotificationBg(notification.type)} ${!notification.read ? 'font-semibold' : ''
+                            }`}
                           onClick={() => handleNotificationClick(notification)}
                         >
                           <div className="flex items-start gap-3">
                             <div className="flex-shrink-0 mt-0.5">
                               {getNotificationIcon(notification.type)}
                             </div>
-                            
+
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between mb-1">
                                 <p className="text-sm font-medium truncate">
@@ -235,19 +228,17 @@ export function NotificationPanel({ className }: NotificationPanelProps) {
                                   </Button>
                                 </div>
                               </div>
-                              
+
                               <p className="text-xs text-gray-600 mb-2">
                                 {notification.message}
                               </p>
-                              
+
                               <div className="flex items-center justify-between">
                                 <span className="text-xs text-gray-400">
                                   {formatTime(notification.timestamp)}
                                 </span>
-                                
-                                {notification.actionUrl && (
-                                  <ExternalLink className="w-3 h-3 text-gray-400" />
-                                )}
+
+
                               </div>
                             </div>
                           </div>
