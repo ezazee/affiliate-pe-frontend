@@ -27,6 +27,7 @@ const seed = async () => {
     await client.connect();
     const db = client.db();
 
+    console.log('Clearing existing data...');
     // Clear existing data
     await db.collection('users').deleteMany({});
     await db.collection('products').deleteMany({});
@@ -43,9 +44,7 @@ const seed = async () => {
       }
     }
 
-
-
-
+    console.log(`Seeding ${users.length} users...`);
     // Seed users with hashed passwords
     const usersWithHashedPasswords = await Promise.all(users.map(async (user) => {
       const hashedPassword = await bcrypt.hash(user.password, 10);
@@ -56,6 +55,7 @@ const seed = async () => {
     }));
     await db.collection('users').insertMany(usersWithHashedPasswords);
 
+    console.log(`Seeding ${products.length} products...`);
     // Seed products
     await db.collection('products').insertMany(products);
 
@@ -82,10 +82,14 @@ const seed = async () => {
 
     // Seed affiliate links
     if (newAffiliateLinks.length > 0) {
+      console.log(`Seeding ${newAffiliateLinks.length} affiliate links...`);
       await db.collection('affiliateLinks').insertMany(newAffiliateLinks);
     }
 
+    console.log('Seeding completed successfully!');
+
   } catch (error) {
+    console.error('Seeding failed:', error);
   } finally {
     await client.close();
   }
