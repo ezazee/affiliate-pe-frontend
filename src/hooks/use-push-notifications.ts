@@ -128,7 +128,7 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
 
       // If no subscription, create one
       if (!pushSubscription) {
-        const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BD7-XYAmgLZETcgTEzRWEPkGmXW0H0iPjGNl3vZvex-h_TFyGCvXifRZIX5mbPbk6HV7qkTs5VGJ-lvjonGoA1o';
+        const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BILYQ98tlwWNaQr4pMx3D42k9gQ8raElNIhXU9OCTElnegaZF_sroUPocViXF2poTp6e3tktTMb5UgJdNbOm2MQ';
         const applicationServerKey = urlB64ToUint8Array(vapidKey);
 
         pushSubscription = await registration.pushManager.subscribe({
