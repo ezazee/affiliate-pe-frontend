@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Send, TestTube } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getAuthHeaders } from '@/lib/api';
 
 export const PushNotificationTester = () => {
   const { toast } = useToast();
@@ -25,6 +26,7 @@ export const PushNotificationTester = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...getAuthHeaders(), // Add authentication headers
         },
         body: JSON.stringify({
           title: testTitle,
