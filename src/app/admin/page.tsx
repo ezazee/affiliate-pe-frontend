@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getAuthHeaders } from '@/lib/api';
 
 interface AffiliatorStats {
   id: string;
@@ -59,7 +60,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/dashboard`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/dashboard`, {
+          headers: getAuthHeaders(),
+        });
         if (response.ok) {
           const data = await response.json();
           setDashboardData(data);

@@ -26,6 +26,8 @@ import { Commission, CommissionStatus } from '@/types';
 
 import { Skeleton } from '@/components/ui/skeleton';
 
+import { getAuthHeaders } from '@/lib/api';
+
 export default function AdminCommissions() {
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,7 +37,9 @@ export default function AdminCommissions() {
   useEffect(() => {
     const fetchCommissions = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/commissions`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/commissions`, {
+          headers: getAuthHeaders(),
+        });
         if (response.ok) {
           const data = await response.json();
           setCommissions(data);
@@ -61,7 +65,10 @@ export default function AdminCommissions() {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/commissions`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
         body: JSON.stringify({ commissionId, status: newStatus }),
       });
 

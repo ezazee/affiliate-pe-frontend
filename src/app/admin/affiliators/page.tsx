@@ -28,6 +28,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import ClientOnly from '@/components/ClientOnly';
 import { Label } from '@/components/ui/label';
 
+import { getAuthHeaders } from '@/lib/api';
+
 export default function AdminAffiliators() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +47,9 @@ export default function AdminAffiliators() {
   useEffect(() => {
     const fetchAffiliators = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/affiliators`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/affiliators`, {
+          headers: getAuthHeaders(),
+        });
         if (response.ok) {
           const data = await response.json();
           setUsers(data);
@@ -73,6 +77,7 @@ export default function AdminAffiliators() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ status: newStatus }),
       });
@@ -98,6 +103,7 @@ export default function AdminAffiliators() {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/affiliators/${userId}`, {
         method: 'DELETE',
+        headers: getAuthHeaders(),
       });
 
       if (response.ok) {
@@ -137,6 +143,7 @@ export default function AdminAffiliators() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          ...getAuthHeaders(),
         },
         body: JSON.stringify(editFormData),
       });

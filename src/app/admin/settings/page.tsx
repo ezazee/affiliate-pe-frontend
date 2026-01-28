@@ -32,6 +32,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PushNotificationSender } from "@/components/admin/push-notification-sender";
 import { Switch } from "@/components/ui/switch";
+import { getAuthHeaders } from "@/lib/api";
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -113,7 +114,10 @@ export default function SettingsPage() {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/notification-settings`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
         body: JSON.stringify(notificationSettings),
       });
 
@@ -143,7 +147,9 @@ export default function SettingsPage() {
     const fetchSettings = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/settings`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/settings`, {
+          headers: getAuthHeaders(),
+        });
 
         if (!response.ok) {
           // Try to get error message, fallback to status text
@@ -171,7 +177,9 @@ export default function SettingsPage() {
 
         // Landing Page Settings
         try {
-          const landingResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/landing-settings`);
+          const landingResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/landing-settings`, {
+            headers: getAuthHeaders(),
+          });
           if (landingResponse.ok) {
             const landingData = await landingResponse.json();
             setLandingPageSettings({
@@ -213,7 +221,10 @@ export default function SettingsPage() {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/settings`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
         body: JSON.stringify({ name: "warehouseAddress", value: address }),
       });
 
@@ -263,7 +274,10 @@ export default function SettingsPage() {
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/settings`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
         body: JSON.stringify({ name: "adminWhatsApp", value: formattedNumber }),
       });
 
@@ -311,7 +325,10 @@ export default function SettingsPage() {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/settings`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
         body: JSON.stringify({ name: "minimumWithdrawal", value: amount }),
       });
 
@@ -353,7 +370,10 @@ export default function SettingsPage() {
         ratesToSave.map((rate) =>
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/settings`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              ...getAuthHeaders(),
+            },
             body: JSON.stringify(rate),
           })
         )
@@ -437,8 +457,17 @@ export default function SettingsPage() {
       const formData = new FormData();
       formData.append("file", file);
 
+      const authForUpload = getAuthHeaders();
+      const authHeader: Record<string, string> = {};
+
+      // Extract just the authorization header if it exists
+      if ('Authorization' in authForUpload) {
+        authHeader['Authorization'] = authForUpload.Authorization as string;
+      }
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/upload`, {
         method: "POST",
+        headers: authHeader,
         body: formData,
       });
 
@@ -474,7 +503,10 @@ export default function SettingsPage() {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/landing-settings`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
         body: JSON.stringify(landingPageSettings),
       });
 

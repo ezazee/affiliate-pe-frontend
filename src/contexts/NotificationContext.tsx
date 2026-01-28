@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { WebNotification, NotificationState, NotificationAction } from '@/types/notifications';
 import { useAuth } from './AuthContext';
+import { getAuthHeaders } from '@/lib/api';
 
 const initialState: NotificationState = {
   notifications: [],
@@ -135,9 +136,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications`, {
-        headers: {
-          'x-user-email': user.email
-        }
+        headers: getAuthHeaders()
       });
       if (response.ok) {
         const data = await response.json();
@@ -178,7 +177,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            'x-user-email': user.email
+            ...getAuthHeaders()
           },
           body: JSON.stringify({ id, userEmail: user.email })
         });
@@ -197,7 +196,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            'x-user-email': user.email
+            ...getAuthHeaders()
           },
           body: JSON.stringify({ all: true, userEmail: user.email })
         });

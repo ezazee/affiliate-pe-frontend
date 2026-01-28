@@ -25,6 +25,7 @@ import { Withdrawal, WithdrawalStatus } from '@/types/withdrawal';
 import { User as UserType } from '@/types/user';
 
 import { Skeleton } from '@/components/ui/skeleton';
+import { getAuthHeaders } from '@/lib/api';
 
 export default function AdminWithdrawals() {
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
@@ -41,7 +42,9 @@ export default function AdminWithdrawals() {
     const fetchData = async () => {
       try {
         // Fetch withdrawals
-        const withdrawalsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/withdrawals`);
+        const withdrawalsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/withdrawals`, {
+          headers: getAuthHeaders(),
+        });
         if (withdrawalsResponse.ok) {
           const withdrawalsData = await withdrawalsResponse.json();
           setWithdrawals(withdrawalsData);
@@ -50,7 +53,9 @@ export default function AdminWithdrawals() {
         }
 
         // Fetch affiliators for user info
-        const affiliatorsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/affiliators`);
+        const affiliatorsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/affiliators`, {
+          headers: getAuthHeaders(),
+        });
         if (affiliatorsResponse.ok) {
           const affiliatorsData = await affiliatorsResponse.json();
           setAffiliators(affiliatorsData);
@@ -75,6 +80,7 @@ export default function AdminWithdrawals() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          ...getAuthHeaders(),
         },
         body: JSON.stringify(body),
       });
