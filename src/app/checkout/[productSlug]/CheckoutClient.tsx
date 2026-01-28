@@ -52,6 +52,7 @@ export default function CheckoutClient({ productSlug: propProductSlug, referralC
     buyerName: '',
     buyerPhone: '',
     shippingAddress: '',
+    district: '',
     city: '',
     province: '',
     postalCode: '',
@@ -270,6 +271,18 @@ export default function CheckoutClient({ productSlug: propProductSlug, referralC
                         value={formData.shippingAddress}
                         onChange={(e) => setFormData(prev => ({ ...prev, shippingAddress: e.target.value }))}
                         placeholder="Alamat lengkap Anda"
+                        required
+                        disabled={shippingCost !== null}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="district">Kecamatan</Label>
+                      <Input
+                        id="district"
+                        value={formData.district}
+                        onChange={(e) => setFormData(prev => ({ ...prev, district: e.target.value }))}
+                        placeholder="Kecamatan"
                         required
                         disabled={shippingCost !== null}
                       />
