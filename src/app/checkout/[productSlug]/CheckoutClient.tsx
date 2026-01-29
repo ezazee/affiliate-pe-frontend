@@ -508,10 +508,12 @@ export default function CheckoutClient({ productSlug: propProductSlug, referralC
                 {/* Product */}
                 <div className="flex gap-4">
                   {product.imageUrl && (
-                    <img
+                    <Image
                       src={product.imageUrl}
                       alt={product.name}
-                      className="w-20 h-20 rounded-lg object-cover"
+                      width={80}
+                      height={80}
+                      className="rounded-lg object-cover"
                     />
                   )}
                   <div>

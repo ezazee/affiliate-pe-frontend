@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ArrowRight, Users, DollarSign, TrendingUp, CheckCircle, Star, Sparkles, Shield, Award, ChevronDown, LogOut, Instagram, MessageCircle, ShoppingBag, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -135,7 +136,7 @@ export default function Index() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
-            <img src="/Logo.png" alt="PE Skinpro" className="w-10 h-10 rounded-xl" />
+            <Image src="/Logo.png" alt="PE Skinpro" width={40} height={40} className="rounded-xl" />
             <span className="font-display font-bold text-xl text-foreground">Affiliate</span>
           </Link>
 
@@ -290,15 +291,15 @@ export default function Index() {
             </div>
             <div className="relative">
               {landingSettings.aboutImage ? (
-                <img
-                  src={landingSettings.aboutImage}
-                  alt="Tentang PE Skinpro"
-                  className="aspect-square w-full rounded-2xl object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                  }}
-                />
+                <div className="relative aspect-square w-full">
+                  <Image
+                    src={landingSettings.aboutImage}
+                    alt="Tentang PE Skinpro"
+                    fill
+                    className="rounded-2xl object-cover"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                </div>
               ) : null}
               <div className={`aspect-square bg-gradient-to-br from-primary/10 to-secondary/10 rounded-2xl flex items-center justify-center ${landingSettings.aboutImage ? 'hidden' : ''}`}>
                 <div className="text-center">
@@ -449,15 +450,13 @@ export default function Index() {
                     transition={{ duration: 0.4, delay: index * 0.1 }}
                     className="bg-card rounded-2xl p-6 shadow-card hover:shadow-card-hover transition-all duration-300 flex flex-col h-full"
                   >
-                    <div className="w-full h-40 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl mb-4 flex items-center justify-center overflow-hidden flex-shrink-0">
-                      <img
+                    <div className="w-full h-40 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl mb-4 flex items-center justify-center overflow-hidden flex-shrink-0 relative">
+                      <Image
                         src={product.imageUrl}
                         alt={product.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                        }}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                       />
                       <Sparkles className="w-12 h-12 text-primary/50 hidden" />
                     </div>
@@ -541,7 +540,7 @@ export default function Index() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
             <div className="lg:col-span-2">
               <div className="flex items-center gap-3 mb-4">
-                <img src="/Logo.png" alt="PE Skinpro" className="w-10 h-10 rounded-xl" />
+                <Image src="/Logo.png" alt="PE Skinpro" width={40} height={40} className="rounded-xl" />
                 <span className="font-display font-bold text-xl text-foreground">Affiliate</span>
               </div>
               <p className="text-muted-foreground mb-4 max-w-sm">
@@ -608,7 +607,7 @@ export default function Index() {
           <div className="border-t border-border pt-8">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <img src="/Logo.png" alt="PE Skinpro" className="w-8 h-8 rounded-lg" />
+                <Image src="/Logo.png" alt="PE Skinpro" width={32} height={32} className="rounded-lg" />
                 <span className="font-display font-bold text-foreground">Affiliate</span>
               </div>
               <p className="text-muted-foreground text-sm text-center sm:text-right">
